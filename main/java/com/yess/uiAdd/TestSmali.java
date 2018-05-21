@@ -1,4 +1,4 @@
-package com.yess;
+package com.yess.uiAdd;
 
 import android.app.Activity;
 import android.content.Intent;

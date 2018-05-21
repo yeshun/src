@@ -12,37 +12,37 @@ import com.huijiemanager.ui.fragment.PageFragment;
  * Created by yehun on 2018/5/20.
  */
 
-public class UIChange {
+public class ChangeUI {
     private static  TestSmali instance;
     public  void Test(PageFragment page){
         if(instance == null)
         {
             instance = new TestSmali();
             try{
-                View view = page.getView().getRootView();
+                /*View view = page.getView().getRootView();
                 RelativeLayout relative = new RelativeLayout(view.getContext());
                 relative.setBackgroundColor(Color.YELLOW);
 
-                // ½«Button2 ¼ÓÈëµ½RelativeLayout ÖÐ
+                // ï¿½ï¿½Button2 ï¿½ï¿½ï¿½ëµ½RelativeLayout ï¿½ï¿½
                 instance.button = new Button(view.getContext());
-                instance.button.setText("¿ªÆô");//ÉèÖÃÏÔÊ¾µÄ×Ö·û
+                instance.button.setText("ï¿½ï¿½ï¿½ï¿½");//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Ö·ï¿½
                 instance.button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if( instance.button.getText().equals("¿ªÆô"))
-                            instance.button.setText("¹Ø±Õ");
+                        if( instance.button.getText().equals("ï¿½ï¿½ï¿½ï¿½"))
+                            instance.button.setText("ï¿½Ø±ï¿½");
                         else
-                            instance.button.setText("¿ªÆô");
+                            instance.button.setText("ï¿½ï¿½ï¿½ï¿½");
                     }
                 });
                 relative.addView( instance.button);
-                // ÉèÖÃRelativeLayout²¼¾ÖµÄ¿í¸ß
+                // ï¿½ï¿½ï¿½ï¿½RelativeLayoutï¿½ï¿½ï¿½ÖµÄ¿ï¿½ï¿½
                 RelativeLayout.LayoutParams lp=new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
                 lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
                 lp=new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                instance.button.setLayoutParams(lp);   ////ÉèÖÃ°´Å¥µÄ²¼¾ÖÊôÐÔ
-                page.getActivity().addContentView(relative,lp);
+                instance.button.setLayoutParams(lp);   ////ï¿½ï¿½ï¿½Ã°ï¿½Å¥ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                page.getActivity().addContentView(relative,lp);*/
             }catch (Exception e){
             }
             // page.getActivity().addContentView(button, layout);
