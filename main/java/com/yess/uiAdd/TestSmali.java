@@ -1,16 +1,18 @@
 package com.yess.uiAdd;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.huijiemanager.base.b;
@@ -18,6 +20,7 @@ import com.huijiemanager.http.NetworkHelper;
 import com.huijiemanager.http.response.MyInforCreditResponse;
 import com.huijiemanager.http.response.PublicDetailResponse;
 import com.huijiemanager.http.response.QuareOrderFiltrateResponse;
+import com.huijiemanager.killSelfService;
 import com.huijiemanager.ui.activity.PublicDetailActivity;
 import com.huijiemanager.ui.fragment.PageFragment;
 
@@ -28,8 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-
-import static com.huijiemanager.utils.k.e;
 
 /**
  * Created by yehun on 2018/4/14.
@@ -47,7 +48,7 @@ public class TestSmali {
         Log.d(TAG,parmeras);
     }
 
-    private static  boolean startAgent = false;
+    public static  boolean startAgent = false;
 
     private static MenuItem detailClose;
 
@@ -61,6 +62,8 @@ public class TestSmali {
     //  private static ScheduledThreadPoolExecutor pool;
 
     private static int delayInterval = 90;
+
+    private int orderCount;
 
     public static void DetailClose(MenuItem close)
     {
@@ -126,6 +129,17 @@ public class TestSmali {
                         LogStr("自动发送获取新订单消息" );
                     }
                 }, delayInterval);
+
+                if(instance.orderCount >10)
+                {
+                    LogStr("AUTO CLOSE");
+                    instance.orderCount = 0;
+                    Context context = instance.mainActivity.getBaseContext();
+                    Intent intent1=new Intent(context,killSelfService.class);
+                    intent1.putExtra("PackageName",context.getPackageName());
+                    intent1.putExtra("Delayed",2000);
+                    context.startService(intent1);
+                }
             }
         }
     }
@@ -207,29 +221,23 @@ public class TestSmali {
                     @Override
                     public void onClick(View view) {
                         if (instance.button.getText().equals("激活")) {
-                            instance.button.setText("开始");
-                            instance.CreateYessKeys("YessKeys");
+                            instance.button.setEnabled(false);
+                            if(instance.editText == null)
+                                instance.InitEditText();
                         }
                         else if (instance.button.getText().equals("开始")) {
                             instance.button.setText("暂停");
-
-                            if(instance.editText == null)
-                            {
-                                instance.editText =new EditText(instance.button.getContext());
-                                instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
-                                instance.editText.setWidth(800);
-                                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                                lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-                                lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-                                //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                                instance.editText.setLayoutParams(lp);
-                                instance.editText.setX(100);
-                                instance.relative.addView( instance.editText,lp);
-                                instance.relative.refreshDrawableState();
-                            }
-
                         }
-                        else instance.button.setText("开始");
+                        else if(instance.button.getText().equals("保存"))
+                        {
+                            //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
+
+                            //失败 重置 InitEditText
+                            instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
+                            instance.button.setEnabled(false);
+                        }
+                        else if(instance.button.getText().equals("暂停"))
+                            instance.button.setText("开始");
                     }
                 });
                 instance.relative.addView(instance.button);
@@ -244,6 +252,38 @@ public class TestSmali {
         }catch (Exception e){
 
         }
+    }
+
+    private void InitEditText()
+    {
+        instance.editText =new EditText(instance.button.getContext());
+        instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
+        instance.editText.setWidth(800);
+        instance.editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                instance.button.setText("保存");
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if(!instance.button.getText().equals("保存"))
+                    instance.button.setText("保存");
+                instance.button.setEnabled(count > 0);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+        //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        instance.editText.setLayoutParams(lp);
+        instance.editText.setX(100);
+        instance.relative.addView( instance.editText,lp);
+        instance.relative.refreshDrawableState();
     }
 
     private void CreateYessKeys(String contents)
@@ -296,6 +336,7 @@ public class TestSmali {
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        instance.orderCount++;
         currentData = detailData;
 
         currentDetail = detailActivity;

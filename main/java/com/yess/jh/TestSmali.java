@@ -1,37 +1,54 @@
 package com.yess.jh;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.RelativeLayout;
 
 import com.huijiemanager.base.b;
 import com.huijiemanager.http.NetworkHelper;
 import com.huijiemanager.http.response.MyInforCreditResponse;
 import com.huijiemanager.http.response.PublicDetailResponse;
 import com.huijiemanager.http.response.QuareOrderFiltrateResponse;
+import com.huijiemanager.killSelfService;
 import com.huijiemanager.ui.activity.PublicDetailActivity;
 import com.huijiemanager.ui.fragment.PageFragment;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by yehun on 2018/4/14.
  */
 public class TestSmali {
 
+    private static  TestSmali instance;
+    private Button button;
+    private EditText editText;
+    private Activity mainActivity;
+    private RelativeLayout relative;
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
     {
         Log.d(TAG,parmeras);
     }
 
-    private static  boolean startAgent = false;
+    public static  boolean startAgent = false;
 
     private static MenuItem detailClose;
 
@@ -44,7 +61,9 @@ public class TestSmali {
 
     //  private static ScheduledThreadPoolExecutor pool;
 
-    private static int delayInterval = 600;
+    private static int delayInterval = 90;
+
+    private int orderCount;
 
     public static void DetailClose(MenuItem close)
     {
@@ -110,6 +129,17 @@ public class TestSmali {
                         LogStr("自动发送获取新订单消息" );
                     }
                 }, delayInterval);
+
+                if(instance.orderCount >10)
+                {
+                    LogStr("AUTO CLOSE");
+                    instance.orderCount = 0;
+                    Context context = instance.mainActivity.getBaseContext();
+                    Intent intent1=new Intent(context,killSelfService.class);
+                    intent1.putExtra("PackageName",context.getPackageName());
+                    intent1.putExtra("Delayed",2000);
+                    context.startService(intent1);
+                }
             }
         }
     }
@@ -171,8 +201,126 @@ public class TestSmali {
 
             LogStr("开始检查第一个订单 ：" +bean.getUserDesc());
         }
+
+        try {
+            if(instance == null) {
+                instance = new TestSmali();
+                instance.mainActivity = page.getActivity();
+
+                View view = page.getView().getRootView();
+                instance.relative = new RelativeLayout(view.getContext());
+                instance.relative.setBackgroundColor(Color.YELLOW);
+                instance.relative.setY(200);
+
+                instance.button = new Button(view.getContext());
+                if(instance.CheckYessKeys(instance.mainActivity).isEmpty())
+                    instance.button.setText("激活");
+                else
+                    instance.button.setText("开始");
+                instance.button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (instance.button.getText().equals("激活")) {
+                            instance.button.setEnabled(false);
+                            if(instance.editText == null)
+                                instance.InitEditText();
+                        }
+                        else if (instance.button.getText().equals("开始")) {
+                            instance.button.setText("暂停");
+                        }
+                        else if(instance.button.getText().equals("保存"))
+                        {
+                            //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
+
+                            //失败 重置 InitEditText
+                            instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
+                            instance.button.setEnabled(false);
+                        }
+                        else if(instance.button.getText().equals("暂停"))
+                            instance.button.setText("开始");
+                    }
+                });
+                instance.relative.addView(instance.button);
+                // ����RelativeLayout���ֵĿ��
+                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+                lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+                //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
+                instance.mainActivity.addContentView(instance.relative, lp);
+            }
+        }catch (Exception e){
+
+        }
     }
 
+    private void InitEditText()
+    {
+        instance.editText =new EditText(instance.button.getContext());
+        instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
+        instance.editText.setWidth(800);
+        instance.editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                instance.button.setText("保存");
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if(!instance.button.getText().equals("保存"))
+                    instance.button.setText("保存");
+                instance.button.setEnabled(count > 0);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+        //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        instance.editText.setLayoutParams(lp);
+        instance.editText.setX(100);
+        instance.relative.addView( instance.editText,lp);
+        instance.relative.refreshDrawableState();
+    }
+
+    private void CreateYessKeys(String contents)
+    {
+        try {
+            File yessKeys = new File( instance.mainActivity.getFilesDir(), "YessKeys.yes");
+            yessKeys.createNewFile();
+            FileOutputStream os = new FileOutputStream(yessKeys);
+            os.write(contents.getBytes());
+            os.close();
+        }catch (Exception e){
+        }
+    }
+
+    ///解析本地授权文件
+    private String CheckYessKeys(Activity activity)
+    {
+        try {
+            File yessKeys = new File(activity.getFilesDir(), "YessKeys.yes");
+            if(yessKeys.exists())
+            {
+                FileInputStream is = new FileInputStream(yessKeys);
+                int length = is.available();
+
+                byte [] buffer = new byte[length];
+                is.read(buffer);
+
+                String res = new String(buffer, "UTF-8");
+
+                is.close();
+                return res;
+            }else
+                return "";
+        }catch (Exception e){
+            return "";
+        }
+    }
 
     private static void AutoCloseDetail()
     {
@@ -188,6 +336,7 @@ public class TestSmali {
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        instance.orderCount++;
         currentData = detailData;
 
         currentDetail = detailActivity;
@@ -251,7 +400,7 @@ public class TestSmali {
 //                        allCondition[4] = true;
 
                     //信用记录 : 信用良好，无逾期
-                    if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天")/*||info.getC_value().equals("信用良好，无逾期"))*/)
+                    if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
                         allCondition[5] = true;
 
               /*      LogStr(info.getC_name() +" : " +info.getC_value());
@@ -302,7 +451,6 @@ public class TestSmali {
 
             AutoCloseDetail();
         }
-
     }
 
     private static NetworkHelper<b> _networkHelper = null;
