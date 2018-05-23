@@ -61,7 +61,7 @@ public class TestSmali {
 
     //  private static ScheduledThreadPoolExecutor pool;
 
-    private static int delayInterval = 90;
+    private static int delayInterval = 5000;
 
     private int orderCount;
 
@@ -149,7 +149,7 @@ public class TestSmali {
         try {
             SimpleDateFormat formatter   =   new   SimpleDateFormat   ("yyyy-MM-dd HH:mm:ss");
             Date curDate =  new Date(System.currentTimeMillis());
-            Date lockData =  formatter.parse("2018-5-24 00:00:00");
+            Date lockData =  formatter.parse("2018-6-20 00:00:00");
 
             // LogStr( lockData.getTime() + " => " +curDate.getTime());
             return  lockData.getTime() < curDate.getTime();
@@ -336,14 +336,15 @@ public class TestSmali {
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        instance.orderCount++;
         currentData = detailData;
 
         currentDetail = detailActivity;
 
-        boolean[] allCondition = new boolean[]{false, false,false,false,false, false,false};
+        boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward =detailData.city.contains("武汉");   //地区过滤
+        boolean forward = true;//detailData.city.contains("上海");   //地区过滤
         /*if(forward)  //贷款金额过滤
         {
             if(detailData.loan_amount.contains("万"))
@@ -356,18 +357,17 @@ public class TestSmali {
         if(forward)
         {
             int ageVal = Integer.parseInt(detailData.age);
-            forward =  ageVal < 55 && ageVal > 22 ;
+            forward =  ageVal < 55 && ageVal > 25 ;
         }
 
 
         if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
         {
-
-            // allCondition[0] =true;          //
             for (MyInforCreditResponse response  :detailData.user_info_list) {
+
                 // LogStr(response.getP_name()) ;
-              /* if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
-                    allCondition[3] = true;*/
+                if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
+                    allCondition[3] = true;
 
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
@@ -388,18 +388,20 @@ public class TestSmali {
                     if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
                         allCondition[2] = true;
 
-                    if(info.getC_name().equals("名下房产") && info.getC_value().contains("有房产，可接受抵押"))
-                        allCondition[3] = true;
-
+                 /*   if(info.getC_name().equals("公积金基数"))
+                    {
+                        String numVal = info.getC_value().replace("元","");
+                        int baseNum = Integer.parseInt(numVal);
+                        if(baseNum >= 3500)
+                            allCondition[3] = true;
+                    }
+*/
                     if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
                         allCondition[4] = true;
 
                     //信用记录 : 信用良好，无逾期
-                    if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
+                    if(info.getC_name().equals("信用记录") && info.getC_value().equals("信用良好，无逾期"))
                         allCondition[5] = true;
-
-                    if(info.getC_name().equals("名下车产") && info.getC_value().contains("有车，可接受抵押"))
-                        allCondition[6] = true;
 
               /*      LogStr(info.getC_name() +" : " +info.getC_value());
 
@@ -419,7 +421,7 @@ public class TestSmali {
                 }
             }
 
-            if(allCondition[5] &&( allCondition[0] || allCondition[1] ||allCondition[2]|| allCondition[3] ||allCondition[4] ||allCondition[6]))
+            if((allCondition[1] &&allCondition[2]&& allCondition[4]) && allCondition[5] && (allCondition[0] ||allCondition[3]))
             {                //满足所有条件，自动买断
                 new Handler().postDelayed(new Runnable(){
                     public void run() {
@@ -433,7 +435,7 @@ public class TestSmali {
                         com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
                         currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
                     }
-                }, delayInterval);
+                }, 1);
             }  else
             {
                 if(detailClose == null || currentDetail == null)

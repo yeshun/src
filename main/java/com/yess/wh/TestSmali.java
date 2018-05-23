@@ -336,6 +336,7 @@ public class TestSmali {
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        instance.orderCount++;
         currentData = detailData;
 
         currentDetail = detailActivity;
@@ -388,7 +389,7 @@ public class TestSmali {
                     if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
                         allCondition[2] = true;
 
-                    if(info.getC_name().equals("名下房产") && info.getC_value().contains("有房产，可接受抵押"))
+                    if(info.getC_name().equals("保单价值") && !info.getC_value().contains("无"))
                         allCondition[3] = true;
 
                     if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
@@ -398,7 +399,7 @@ public class TestSmali {
                     if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
                         allCondition[5] = true;
 
-                    if(info.getC_name().equals("名下车产") && info.getC_value().contains("有车，可接受抵押"))
+                    if(info.getC_name().equals("信用卡额度") && info.getC_value().contains("30000元以上"))
                         allCondition[6] = true;
 
               /*      LogStr(info.getC_name() +" : " +info.getC_value());

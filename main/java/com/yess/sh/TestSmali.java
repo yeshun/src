@@ -336,6 +336,7 @@ public class TestSmali {
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        instance.orderCount++;
         currentData = detailData;
 
         currentDetail = detailActivity;
@@ -375,7 +376,7 @@ public class TestSmali {
                         String saylaStr = info.getC_value();
                         if(saylaStr.contains("元"))
                             saylaStr= saylaStr.replace("元","");
-                        int sayla = Integer.valueOf(saylaStr);
+                        int sayla = Integer.parseInt(saylaStr);
                         // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
                         if(sayla >= 20000)
                             allCondition[0] = true;
