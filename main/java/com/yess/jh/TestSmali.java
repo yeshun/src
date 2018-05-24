@@ -37,10 +37,10 @@ import java.util.HashMap;
  */
 public class TestSmali {
 
-    private static  TestSmali instance;
+    public static  TestSmali instance;
     private Button button;
     private EditText editText;
-    private Activity mainActivity;
+    public Activity mainActivity;
     private RelativeLayout relative;
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
@@ -61,9 +61,11 @@ public class TestSmali {
 
     //  private static ScheduledThreadPoolExecutor pool;
 
-    private static int delayInterval = 90;
+    private static int delayInterval = 60;
 
     private int orderCount;
+
+    private static int autoCount = 80;
 
     public static void DetailClose(MenuItem close)
     {
@@ -117,33 +119,43 @@ public class TestSmali {
 
         if(autoRequest)
         {
-            // LogStr("列表检查完毕，Helper ：" + (_networkHelper == null) +" requestMap : " +(requestMap == null));
-            if(_networkHelper != null && requestMap != null)
+            if(instance.orderCount > autoCount)
             {
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        lastFragment.a();
-                        allOrder.clear();
-                        allPage.clear();
-                        startAgent = true;
-                        LogStr("自动发送获取新订单消息" );
-                    }
-                }, delayInterval);
+                LogStr("AUTO CLOSE");
+                Context context = instance.mainActivity.getBaseContext();
+                Intent intent1=new Intent(context,killSelfService.class);
+                intent1.putExtra("PackageName",context.getPackageName());
+                intent1.putExtra("Delayed",2000);
+                context.startService(intent1);
 
-                if(instance.orderCount >10)
-                {
-                    LogStr("AUTO CLOSE");
-                    instance.orderCount = 0;
-                    Context context = instance.mainActivity.getBaseContext();
-                    Intent intent1=new Intent(context,killSelfService.class);
-                    intent1.putExtra("PackageName",context.getPackageName());
-                    intent1.putExtra("Delayed",2000);
-                    context.startService(intent1);
-                }
+                allOrder.clear();
+                allPage.clear();
+                rededOrders.clear();
+                instance.orderCount = 0;
+                instance.mainActivity.finish();
+                startAgent = true;
+                instance = null;
+            }else{
+                RequestOrderList();
             }
         }
     }
 
+    public static void RequestOrderList()
+    {
+        if(_networkHelper != null && requestMap != null)
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    lastFragment.a();
+                    allOrder.clear();
+                    allPage.clear();
+                    startAgent = true;
+                    LogStr("自动发送获取新订单消息" );
+                }
+            }, delayInterval);
+        }
+    }
 
     private static  boolean IsLock(){
         try {
@@ -169,6 +181,9 @@ public class TestSmali {
             return;
         }
 
+        if(lastFragment != null && instance == null )
+            startAgent = true;
+
         if(!startAgent)
         {
             if(!allOrder.contains(bean))
@@ -176,7 +191,6 @@ public class TestSmali {
 
             if(!allPage.containsKey(bean))
                 allPage.put(bean,page);
-
          /*   Comparator<QuareOrderFiltrateResponse.OrdersBean> comparator = new OrderComparator();
             Collections.sort(allOrder,comparator);*/
 

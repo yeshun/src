@@ -37,10 +37,10 @@ import java.util.HashMap;
  */
 public class TestSmali {
 
-    private static  TestSmali instance;
+    public static  TestSmali instance;
     private Button button;
     private EditText editText;
-    private Activity mainActivity;
+    public Activity mainActivity;
     private RelativeLayout relative;
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
@@ -61,9 +61,11 @@ public class TestSmali {
 
     //  private static ScheduledThreadPoolExecutor pool;
 
-    private static int delayInterval = 5000;
+    private static int delayInterval = 60;
 
     private int orderCount;
+
+    private static int autoCount = 80;
 
     public static void DetailClose(MenuItem close)
     {
@@ -117,33 +119,43 @@ public class TestSmali {
 
         if(autoRequest)
         {
-            // LogStr("列表检查完毕，Helper ：" + (_networkHelper == null) +" requestMap : " +(requestMap == null));
-            if(_networkHelper != null && requestMap != null)
+            if(instance.orderCount > autoCount)
             {
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        lastFragment.a();
-                        allOrder.clear();
-                        allPage.clear();
-                        startAgent = true;
-                        LogStr("自动发送获取新订单消息" );
-                    }
-                }, delayInterval);
+                LogStr("AUTO CLOSE");
+                Context context = instance.mainActivity.getBaseContext();
+                Intent intent1=new Intent(context,killSelfService.class);
+                intent1.putExtra("PackageName",context.getPackageName());
+                intent1.putExtra("Delayed",2000);
+                context.startService(intent1);
 
-                if(instance.orderCount > 88)
-                {
-                    LogStr("AUTO CLOSE");
-                    instance.orderCount = 0;
-                    Context context = instance.mainActivity.getBaseContext();
-                    Intent intent1=new Intent(context,killSelfService.class);
-                    intent1.putExtra("PackageName",context.getPackageName());
-                    intent1.putExtra("Delayed",2000);
-                    context.startService(intent1);
-                }
+                allOrder.clear();
+                allPage.clear();
+                rededOrders.clear();
+                instance.orderCount = 0;
+                instance.mainActivity.finish();
+                startAgent = true;
+                instance = null;
+            }else{
+                RequestOrderList();
             }
         }
     }
 
+    public static void RequestOrderList()
+    {
+        if(_networkHelper != null && requestMap != null)
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    lastFragment.a();
+                    allOrder.clear();
+                    allPage.clear();
+                    startAgent = true;
+                    LogStr("自动发送获取新订单消息" );
+                }
+            }, delayInterval);
+        }
+    }
 
     private static  boolean IsLock(){
         try {
@@ -169,6 +181,9 @@ public class TestSmali {
             return;
         }
 
+        if(lastFragment != null && instance == null )
+            startAgent = true;
+
         if(!startAgent)
         {
             if(!allOrder.contains(bean))
@@ -176,7 +191,6 @@ public class TestSmali {
 
             if(!allPage.containsKey(bean))
                 allPage.put(bean,page);
-
          /*   Comparator<QuareOrderFiltrateResponse.OrdersBean> comparator = new OrderComparator();
             Collections.sort(allOrder,comparator);*/
 
@@ -344,7 +358,7 @@ public class TestSmali {
         boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward = true;//detailData.city.contains("上海");   //地区过滤
+        boolean forward =detailData.city.contains("金华");   //地区过滤
         /*if(forward)  //贷款金额过滤
         {
             if(detailData.loan_amount.contains("万"))
@@ -357,7 +371,7 @@ public class TestSmali {
         if(forward)
         {
             int ageVal = Integer.parseInt(detailData.age);
-            forward =  ageVal < 55 && ageVal > 25 ;
+            forward =  ageVal < 60 && ageVal > 23 ;
         }
 
 
@@ -366,8 +380,8 @@ public class TestSmali {
             for (MyInforCreditResponse response  :detailData.user_info_list) {
 
                 // LogStr(response.getP_name()) ;
-                if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
-                    allCondition[3] = true;
+           /*     if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
+                    allCondition[3] = true;*/
 
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
@@ -378,29 +392,29 @@ public class TestSmali {
                             saylaStr= saylaStr.replace("元","");
                         int sayla = Integer.valueOf(saylaStr);
                         // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
-                        if(sayla >= 3000)
+                        if(sayla >=10000)
                             allCondition[0] = true;
                     }
 
-                    if(info.getC_name().equals("本地社保") && info.getC_value().contains("连续6个月"))
+                /*    if(info.getC_name().equals("本地社保") && info.getC_value().contains("连续6个月"))
                         allCondition[1] = true;
 
                     if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
                         allCondition[2] = true;
 
-                 /*   if(info.getC_name().equals("公积金基数"))
+                    if(info.getC_name().equals("公积金基数"))
                     {
                         String numVal = info.getC_value().replace("元","");
                         int baseNum = Integer.parseInt(numVal);
                         if(baseNum >= 3500)
                             allCondition[3] = true;
-                    }
-*/
-                    if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
-                        allCondition[4] = true;
+                    }*/
+
+//                    if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
+//                        allCondition[4] = true;
 
                     //信用记录 : 信用良好，无逾期
-                    if(info.getC_name().equals("信用记录") && info.getC_value().equals("信用良好，无逾期"))
+                    if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
                         allCondition[5] = true;
 
               /*      LogStr(info.getC_name() +" : " +info.getC_value());
@@ -421,7 +435,7 @@ public class TestSmali {
                 }
             }
 
-            if((allCondition[1] &&allCondition[2]&& allCondition[4]) && allCondition[5] && (allCondition[0] ||allCondition[3]))
+            if(allCondition[5] &&allCondition[0])
             {                //满足所有条件，自动买断
                 new Handler().postDelayed(new Runnable(){
                     public void run() {
@@ -435,7 +449,7 @@ public class TestSmali {
                         com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
                         currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
                     }
-                }, 1);
+                }, delayInterval);
             }  else
             {
                 if(detailClose == null || currentDetail == null)

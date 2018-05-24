@@ -65,6 +65,22 @@ public class TestSmali {
 
     private int orderCount;
 
+    public static void RequestOrderList()
+    {
+        if(_networkHelper != null && requestMap != null)
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    lastFragment.a();
+                    allOrder.clear();
+                    allPage.clear();
+                    startAgent = true;
+                    LogStr("自动发送获取新订单消息" );
+                }
+            }, delayInterval);
+        }
+    }
+
     public static void DetailClose(MenuItem close)
     {
         // startAgent = true;

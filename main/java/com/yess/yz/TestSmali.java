@@ -318,6 +318,22 @@ public class TestSmali {
     private static  int currentInt;
     private  static  PublicDetailResponse currentData;
 
+    public static void RequestOrderList()
+    {
+        if(_networkHelper != null && requestMap != null)
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    lastFragment.a();
+                    allOrder.clear();
+                    allPage.clear();
+                    startAgent = true;
+                    LogStr("自动发送获取新订单消息" );
+                }
+            }, delayInterval);
+        }
+    }
+
     public  static void SetDetail20(int parmera)
     {
         LogStr((currentDetail == null)+"");
