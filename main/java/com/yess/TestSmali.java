@@ -161,7 +161,7 @@ public class TestSmali {
         try {
             SimpleDateFormat formatter   =   new   SimpleDateFormat   ("yyyy-MM-dd HH:mm:ss");
             Date curDate =  new Date(System.currentTimeMillis());
-            Date lockData =  formatter.parse("2018-6-20 00:00:00");
+            Date lockData =  formatter.parse("2018-6-24 00:00:00");
 
             // LogStr( lockData.getTime() + " => " +curDate.getTime());
             return  lockData.getTime() < curDate.getTime();
@@ -355,10 +355,10 @@ public class TestSmali {
 
         currentDetail = detailActivity;
 
-        boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
+        boolean[] allCondition = new boolean[]{false, false,false,false,false, false,false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward =detailData.city.contains("金华");   //地区过滤
+        boolean forward =detailData.city.contains("武汉");   //地区过滤
         /*if(forward)  //贷款金额过滤
         {
             if(detailData.loan_amount.contains("万"))
@@ -371,16 +371,17 @@ public class TestSmali {
         if(forward)
         {
             int ageVal = Integer.parseInt(detailData.age);
-            forward =  ageVal < 60 && ageVal > 23 ;
+            forward =  ageVal < 50 && ageVal > 22 ;
         }
 
 
         if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
         {
-            for (MyInforCreditResponse response  :detailData.user_info_list) {
 
+            // allCondition[0] =true;          //
+            for (MyInforCreditResponse response  :detailData.user_info_list) {
                 // LogStr(response.getP_name()) ;
-           /*     if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
+              /* if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
                     allCondition[3] = true;*/
 
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
@@ -392,30 +393,29 @@ public class TestSmali {
                             saylaStr= saylaStr.replace("元","");
                         int sayla = Integer.valueOf(saylaStr);
                         // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
-                        if(sayla >=10000)
+                        if(sayla >= 3000)
                             allCondition[0] = true;
                     }
 
-                /*    if(info.getC_name().equals("本地社保") && info.getC_value().contains("连续6个月"))
+                    if(info.getC_name().equals("本地社保") && info.getC_value().contains("连续6个月"))
                         allCondition[1] = true;
 
                     if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
                         allCondition[2] = true;
 
-                    if(info.getC_name().equals("公积金基数"))
-                    {
-                        String numVal = info.getC_value().replace("元","");
-                        int baseNum = Integer.parseInt(numVal);
-                        if(baseNum >= 3500)
-                            allCondition[3] = true;
-                    }*/
+                    if((info.getC_name().equals("手机归属地") && info.getC_value().contains("武汉"))||
+                            (info.getC_name().equals("户籍所在地") && info.getC_value().contains("武汉")))
+                        allCondition[3] = true;
 
-//                    if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
-//                        allCondition[4] = true;
+                    if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
+                        allCondition[4] = true;
 
                     //信用记录 : 信用良好，无逾期
                     if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
                         allCondition[5] = true;
+
+                    if(info.getC_name().equals("信用卡额度") && info.getC_value().contains("30000元以上"))
+                        allCondition[6] = true;
 
               /*      LogStr(info.getC_name() +" : " +info.getC_value());
 
@@ -435,7 +435,7 @@ public class TestSmali {
                 }
             }
 
-            if(allCondition[5] &&allCondition[0])
+            if(allCondition[5] &&allCondition[3] && ( allCondition[0] || allCondition[1] ||allCondition[2]/*|| allCondition[3]*/ ||allCondition[4] ||allCondition[6]))
             {                //满足所有条件，自动买断
                 new Handler().postDelayed(new Runnable(){
                     public void run() {

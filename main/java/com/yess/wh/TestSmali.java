@@ -403,8 +403,9 @@ public class TestSmali {
                     if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
                         allCondition[2] = true;
 
-                /*    if(info.getC_name().equals("保单价值") && !info.getC_value().contains("无"))
-                        allCondition[3] = true;*/
+                    if((info.getC_name().equals("手机归属地") && info.getC_value().contains("武汉"))||
+                            (info.getC_name().equals("户籍所在地") && info.getC_value().contains("武汉")))
+                        allCondition[3] = true;
 
                     if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
                         allCondition[4] = true;
@@ -434,7 +435,7 @@ public class TestSmali {
                 }
             }
 
-            if(allCondition[5] &&( allCondition[0] || allCondition[1] ||allCondition[2]/*|| allCondition[3]*/ ||allCondition[4] ||allCondition[6]))
+            if(allCondition[5] &&allCondition[3] && ( allCondition[0] || allCondition[1] ||allCondition[2]/*|| allCondition[3]*/ ||allCondition[4] ||allCondition[6]))
             {                //满足所有条件，自动买断
                 new Handler().postDelayed(new Runnable(){
                     public void run() {
