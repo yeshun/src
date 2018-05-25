@@ -1,9 +1,11 @@
 package com.yess.uiAdd;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -29,18 +31,27 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by yehun on 2018/4/14.
  */
 public class TestSmali {
 
-    private static  TestSmali instance;
+    public  static  TestSmali getInstance(){
+        if(instance == null)
+            instance = new TestSmali();
+
+        return instance;
+    }
+
+    public static  TestSmali instance;
     private Button button;
     private EditText editText;
-    private Activity mainActivity;
+    public Activity mainActivity;
     private RelativeLayout relative;
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
@@ -53,46 +64,31 @@ public class TestSmali {
     private static MenuItem detailClose;
 
     private  static  ArrayList<Integer> rededOrders = new ArrayList<Integer>();
-    private static ArrayList<QuareOrderFiltrateResponse.OrdersBean> allOrder = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
-    private static HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment> allPage = new HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment>();
+    public static ArrayList<QuareOrderFiltrateResponse.OrdersBean> allOrder = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
+    public static HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment> allPage = new HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment>();
     // private static int queryCounter = 5;
 
     private static PageFragment lastFragment;
 
+    private List<OrdreFilter> filters;
+
     //  private static ScheduledThreadPoolExecutor pool;
 
-    private static int delayInterval = 90;
+    private static int delayInterval = 60;
 
     private int orderCount;
 
-    public static void RequestOrderList()
-    {
-        if(_networkHelper != null && requestMap != null)
-        {
-            new Handler().postDelayed(new Runnable(){
-                public void run() {
-                    lastFragment.a();
-                    allOrder.clear();
-                    allPage.clear();
-                    startAgent = true;
-                    LogStr("自动发送获取新订单消息" );
-                }
-            }, delayInterval);
-        }
-    }
+    private static int autoCount = 80;
 
     public static void DetailClose(MenuItem close)
     {
-        // startAgent = true;
+
         if(detailClose == null && close != null)
             detailClose = close;
-
-        // LogStr((detailClose == null)+"xcsd");
 
         boolean autoRequest = false;
 
         //查找当前public bean里面没有查询过的订单
-
         QuareOrderFiltrateResponse.OrdersBean beanUnRed = null;
         for (QuareOrderFiltrateResponse.OrdersBean bean :allOrder) {
             if (!rededOrders.contains(bean.getId()))
@@ -102,10 +98,8 @@ public class TestSmali {
             }
         }
 
-        if(beanUnRed != null)
+        if(beanUnRed != null && instance.button.getText().equals("暂停"))
         {
-            // int orderIndex = allOrder.size() -1;
-            // beanUnRed = allOrder.get(orderIndex);
             lastFragment = allPage.get(beanUnRed);
             if(lastFragment != null )
             {
@@ -131,43 +125,52 @@ public class TestSmali {
         }else
             autoRequest = true;
 
-        if(autoRequest)
+        if(autoRequest && instance.button.getText().equals("暂停"))
         {
-            // LogStr("列表检查完毕，Helper ：" + (_networkHelper == null) +" requestMap : " +(requestMap == null));
-            if(_networkHelper != null && requestMap != null)
+            if(instance.orderCount > autoCount)
             {
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        lastFragment.a();
-                        allOrder.clear();
-                        allPage.clear();
-                        startAgent = true;
-                        LogStr("自动发送获取新订单消息" );
-                    }
-                }, delayInterval);
+                LogStr("AUTO CLOSE");
+                Context context = instance.mainActivity.getBaseContext();
+                Intent intent1=new Intent(context,killSelfService.class);
+                intent1.putExtra("PackageName",context.getPackageName());
+                intent1.putExtra("Delayed",2000);
+                context.startService(intent1);
 
-                if(instance.orderCount >10)
-                {
-                    LogStr("AUTO CLOSE");
-                    instance.orderCount = 0;
-                    Context context = instance.mainActivity.getBaseContext();
-                    Intent intent1=new Intent(context,killSelfService.class);
-                    intent1.putExtra("PackageName",context.getPackageName());
-                    intent1.putExtra("Delayed",2000);
-                    context.startService(intent1);
-                }
+                allOrder.clear();
+                allPage.clear();
+                rededOrders.clear();
+                instance.orderCount = 0;
+                instance.mainActivity.finish();
+                startAgent = true;
+                instance = null;
+            }else{
+                if(instance.button.getText().equals("暂停"))
+                    RequestOrderList();
             }
         }
     }
 
+    public static void RequestOrderList()
+    {
+        if(_networkHelper != null && requestMap != null)
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    lastFragment.a();
+                    allOrder.clear();
+                    allPage.clear();
+                    startAgent = true;
+                    LogStr("自动发送获取新订单消息" );
+                }
+            }, delayInterval);
+        }
+    }
 
-    private static  boolean IsLock(){
+    private static  boolean IsLock(String  lockStr){
         try {
             SimpleDateFormat formatter   =   new   SimpleDateFormat   ("yyyy-MM-dd HH:mm:ss");
             Date curDate =  new Date(System.currentTimeMillis());
-            Date lockData =  formatter.parse("2018-6-23 00:00:00");
-
-            // LogStr( lockData.getTime() + " => " +curDate.getTime());
+            Date lockData =  formatter.parse(lockStr);
             return  lockData.getTime() < curDate.getTime();
         }
         catch (Exception e){
@@ -179,44 +182,11 @@ public class TestSmali {
     //com/huijiemanager/ui/fragment/PageFragment$f
     public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
     {
-        if(IsLock())
-        {
-            LogStr("Locking");
-            return;
-        }
+        if(allOrder.contains(bean))
+            allOrder.add(bean);
 
-        if(!startAgent)
-        {
-            if(!allOrder.contains(bean))
-                allOrder.add(bean);
-
-            if(!allPage.containsKey(bean))
-                allPage.put(bean,page);
-
-         /*   Comparator<QuareOrderFiltrateResponse.OrdersBean> comparator = new OrderComparator();
-            Collections.sort(allOrder,comparator);*/
-
-            //  LogStr("NickName : "+ bean.getUserDesc()+" Create time : " +bean.getCreateTime() +" Order Count :" + allOrder.size());
-        }else
-        {
-            lastFragment = page;
-            if(!rededOrders.contains(bean.getId()))
-                rededOrders.add(bean.getId());
-
-            startAgent = false;
-            StringBuilder parmeras = new StringBuilder();
-            parmeras.append(bean.getId());
-            parmeras.append("");
-
-            String parmera = parmeras.toString();
-
-            Intent intent = new Intent(page.getContext(),PublicDetailActivity.class);
-            intent.putExtra("id",parmera);
-
-            page.startActivityForResult(intent,0);
-
-            LogStr("开始检查第一个订单 ：" +bean.getUserDesc());
-        }
+        if(allPage.containsKey(bean))
+            allPage.put(bean,page);
 
         try {
             if(instance == null) {
@@ -229,7 +199,9 @@ public class TestSmali {
                 instance.relative.setY(200);
 
                 instance.button = new Button(view.getContext());
-                if(instance.CheckYessKeys(instance.mainActivity).isEmpty())
+
+                instance.filters = instance.ParseYessKey(instance.CheckYessKeys(instance.mainActivity));
+                if(instance.filters == null)
                     instance.button.setText("激活");
                 else
                     instance.button.setText("开始");
@@ -243,14 +215,47 @@ public class TestSmali {
                         }
                         else if (instance.button.getText().equals("开始")) {
                             instance.button.setText("暂停");
+
+                            //激活机器人自动接单流程
+                            if(instance.editText == null)
+                                instance.InitEditText();
+                            instance.editText.setText(instance.CheckYessKeys(instance.mainActivity));
+                            instance.editText.setEnabled(false);
+                            instance.filters = instance.ParseYessKey(instance.editText.getText().toString());
+
+                            QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
+                            lastFragment = allPage.get(orderBean);
+                            if(!rededOrders.contains(orderBean.getId()))
+                                rededOrders.add(orderBean.getId());
+
+                            startAgent = false;
+                            StringBuilder parmeras = new StringBuilder();
+                            parmeras.append(orderBean.getId());
+                            parmeras.append("");
+
+                            String parmera = parmeras.toString();
+
+                            Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
+                            intent.putExtra("id",parmera);
+
+                            lastFragment.startActivityForResult(intent,0);
+
+                            LogStr("开始检查第一个订单 ：" +orderBean.getUserDesc());
                         }
                         else if(instance.button.getText().equals("保存"))
                         {
                             //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
-
-                            //失败 重置 InitEditText
-                            instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
-                            instance.button.setEnabled(false);
+                            List<OrdreFilter> readDatas = instance.ParseYessKey(instance.editText.getText().toString());
+                            if(  readDatas != null)
+                            {
+                                instance.button.setText("开始");
+                                instance.CreateYessKeys(instance.editText.getText().toString());
+                            }else
+                            {
+                                //失败 重置 InitEditText
+                                instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
+                                instance.button.setEnabled(false);
+                            }
                         }
                         else if(instance.button.getText().equals("暂停"))
                             instance.button.setText("开始");
@@ -340,6 +345,9 @@ public class TestSmali {
 
     private static void AutoCloseDetail()
     {
+        if(detailClose == null || currentDetail == null)
+            return;
+
         new Handler().postDelayed(new Runnable(){
             public void run() {
                 currentDetail.onOptionsItemSelected(detailClose);
@@ -354,119 +362,184 @@ public class TestSmali {
     {
         instance.orderCount++;
         currentData = detailData;
-
         currentDetail = detailActivity;
 
-        boolean[] allCondition = new boolean[]{false, false,false,false,false, false,false};
-        //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
+        boolean bSubmit = false;
+        if(instance.filters == null)
+            return;
 
-        boolean forward =detailData.city.contains("武汉");   //地区过滤
-        /*if(forward)  //贷款金额过滤
+        for (OrdreFilter filter : instance.filters)
         {
-            if(detailData.loan_amount.contains("万"))
-                forward= Integer.parseInt(detailData.loan_amount.replace("万","")) >= 3;
-            else
-                forward= Integer.parseInt(detailData.loan_amount) >= 30000;
-        }*/  //贷款金额筛选条件主动过滤
-
-        //年龄过滤
-        if(forward)
-        {
+            boolean bCity = detailData.city.contains(filter.cityFlag);
             int ageVal = Integer.parseInt(detailData.age);
-            forward =  ageVal < 55 && ageVal > 22 ;
-        }
+            boolean bAge = ageVal <= filter.maxAge && ageVal >= filter.minAge ;
+            boolean canMonopoly = detailData.can_collect.equals("1") && detailData.can_monopoly;
+            boolean bLock = IsLock(filter.lockFlag);
+            if(bLock)
+            {
+                instance.CreateYessKeys("服务到期，请联系管理员续费");
+                instance.button.setText("激活");
+            }
 
+            if(!bCity ||!bAge ||!canMonopoly||bLock)
+            {
+                bSubmit = false;
+                break;
+            }
 
-        if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
-        {
-
-            // allCondition[0] =true;          //
+            boolean allCondition = true;
             for (MyInforCreditResponse response  :detailData.user_info_list) {
-                // LogStr(response.getP_name()) ;
-              /* if(!response.getP_name().isEmpty()&& response.getP_name().equals("社保信息"))   //职业判定 ,事业单位公务员
-                    allCondition[3] = true;*/
-
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
-                    if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
+                    if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
                     {
-                        String saylaStr = info.getC_value();
-                        if(saylaStr.contains("元"))
-                            saylaStr= saylaStr.replace("元","");
-                        int sayla = Integer.valueOf(saylaStr);
-                        // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
-                        if(sayla >= 3000)
-                            allCondition[0] = true;
-                    }
-
-                    if(info.getC_name().equals("本地社保") && info.getC_value().contains("连续6个月"))
-                        allCondition[1] = true;
-
-                    if(info.getC_name().equals("本地公积金") && info.getC_value().contains("连续6个月"))
-                        allCondition[2] = true;
-
-                    if(info.getC_name().equals("名下房产") && info.getC_value().contains("有房产，可接受抵押"))
-                        allCondition[3] = true;
-
-                    if(info.getC_name().equals("收入形式") && info.getC_value().equals("银行代发"))
-                        allCondition[4] = true;
-
-                    //信用记录 : 信用良好，无逾期
-                    if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天"))
-                        allCondition[5] = true;
-
-                    if(info.getC_name().equals("名下车产") && info.getC_value().contains("有车，可接受抵押"))
-                        allCondition[6] = true;
-
-              /*      LogStr(info.getC_name() +" : " +info.getC_value());
-
-                    if(info.c_option != null)
-                    {
-                        for (MyInforCreditResponse.InforDetail.Option op:info.c_option) {
-                            LogStr(op.getOp_code() +" : " +op.getOp_desc());
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.月收入);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
                         }
                     }
 
-                    if(info.heidInfo != null)
+                    if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
                     {
-                        for (MyInforCreditResponse.InforDetail.Hide hd:info.heidInfo) {
-                            LogStr(hd.getKey() +" : " +hd.getValue());
+                        if (!info.getC_value().equals(filter.本地社保))
+                        {
+                            allCondition = false;
+                            break;
                         }
-                    }*/
+                    }
+
+                    if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
+                    {
+                        if (!info.getC_value().equals(filter.本地公积金))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
+                    {
+                        if (!info.getC_value().equals(filter.当前单位工龄))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
+                    {
+                        if (!info.getC_value().contains(filter.手机归属地))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
+                    {
+                        if (!info.getC_value().contains(filter.户籍所在地))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
+                    {
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.信用卡额度);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
+                    {
+                        if (!filter.信用记录.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.微粒贷额度.contains("无") &&info.getC_name().equals("微粒贷额度"))
+                    {
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.微粒贷额度);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
+                    {
+                        if (!filter.名下房产.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
+                    {
+                        if (!filter.名下车产.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
+                    if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
+                    {
+                        String 收入字符 = info.getC_value().replace("万","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.微粒贷额度.replace("万",""));
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
+
                 }
             }
 
-            if(allCondition[5] &&( allCondition[0] || allCondition[1] ||allCondition[2]|| allCondition[3] ||allCondition[4] ||allCondition[6]))
-            {                //满足所有条件，自动买断
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        HashMap paramView = new HashMap();
-                        paramView.put("order_id", String.valueOf(+currentData.id));
-                        paramView.put("click", "选择买断抢单");
-                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-
-                        paramView.put("order_id", String.valueOf(currentData.id));
-                        paramView.put("click", "立即抢单");
-                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-                        currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
-                    }
-                }, delayInterval);
-            }  else
+            if(allCondition)
             {
-                if(detailClose == null || currentDetail == null)
-                    return;
-
-                AutoCloseDetail();
+                bSubmit = true;
+                break;
+            }else{
+                continue;
             }
         }
-        else
+
+        if(bSubmit)
         {
-            if(detailClose == null || currentDetail == null)
-                return;
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    HashMap paramView = new HashMap();
+                    paramView.put("order_id", String.valueOf(+currentData.id));
+                    paramView.put("click", "选择买断抢单");
+                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
 
+                    paramView.put("order_id", String.valueOf(currentData.id));
+                    paramView.put("click", "立即抢单");
+                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+                    currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
+                }
+            }, delayInterval);
+        }else
             AutoCloseDetail();
-        }
-
     }
 
     private static NetworkHelper<b> _networkHelper = null;
@@ -515,5 +588,123 @@ public class TestSmali {
             return;
 
         AutoCloseDetail();
+    }
+
+    class OrdreFilter{
+
+        public String  cityFlag;
+        public String lockFlag;
+        public int minAge;
+        public int maxAge;
+
+        public String 月收入;  //xx元
+        public String 收入形式; //转账工资，现金发放，银行转账
+        public String 本地社保;//无本地社保，连续6个月
+        public String 本地公积金;//无本地公积金，连续6个月
+        public String 当前单位工龄;//6个月以上
+        public String 手机归属地;//市级包含检查
+        public String 户籍所在地;//市级包含检查
+        public String 信用卡额度;//xx元
+        public String 信用记录;//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
+        public String 微粒贷额度;//xxx元
+        public  String 名下房产;//有房产,不接受抵押
+        public  String 名下车产;//有车产,不接受抵押
+        public  String 保单价值;//有房产,不接受抵押
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    public List<OrdreFilter> ParseYessKey(String yessKeys)
+    {
+        List<OrdreFilter> valiData = null;
+        if(yessKeys.isEmpty())
+            return  null;
+
+        try {
+            Base64.Decoder base64De = java.util.Base64.getDecoder();
+            String decodeAgin = new String(base64De.decode(yessKeys), "GBK");
+
+            String decodeTwice = new String(base64De.decode(decodeAgin), "UTF-8");
+            /*
+
+            上海~2018-5-23Space00:00:00!22L50@3000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30万||3001#现金发放;连续3个月%连续2个月^12个月以上&珠海*深圳(8888)2年内逾期少于4次且少于93天_10001+有房产,可接受抵押{有车产,不接受抵押}33万
+            */
+
+            OrdreFilter headData = new OrdreFilter();
+            headData.cityFlag = decodeTwice.split("M")[0];
+            decodeTwice = decodeTwice.replace(headData.cityFlag+"M","");
+            String dataStr = decodeTwice.split("N")[0];
+            headData.lockFlag =dataStr .replace("Space"," ");
+            decodeTwice = decodeTwice.replace(dataStr+"N","");
+            String ageStr =  decodeTwice.split("O")[0];
+            if(!ageStr.isEmpty())
+            {
+                String[] ageArray = ageStr.split("L");
+                headData.minAge = Integer.parseInt(ageArray[0]);
+                headData.maxAge = Integer.parseInt(ageArray[1]);
+            }
+            decodeTwice = decodeTwice.replace(ageStr+"O","");
+
+            String[] filterArr = decodeTwice.split("\\|\\|");
+
+            valiData = new ArrayList<OrdreFilter>();
+            if(filterArr.length  == 0)
+            {
+                valiData.add(headData);
+                return  valiData;
+            }
+
+            for (String filter:filterArr) {
+                //000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30
+                OrdreFilter order = new OrdreFilter();
+                order.cityFlag = headData.cityFlag;
+                order.lockFlag = headData.lockFlag;
+                order.minAge = headData.minAge;
+                order.maxAge = headData.maxAge;
+
+                order.月收入 =  filter.split("#")[0];
+                filter = filter.replace(order.月收入 +"#","");
+
+                order.收入形式 =  filter.split("A")[0];
+                filter = filter.replace(order.收入形式 +"A","");
+
+                order.本地社保 =  filter.split("B")[0];
+                filter = filter.replace(order.本地社保 +"B","");
+
+                order.本地公积金 =  filter.split("C")[0];
+                filter = filter.replace(order.本地公积金 +"C","");
+
+                order.当前单位工龄 =  filter.split("D")[0];
+                filter = filter.replace(order.当前单位工龄 +"D","");
+
+                order.手机归属地 =  filter.split("E")[0];
+                filter = filter.replace(order.手机归属地 +"E","");
+
+                order.户籍所在地 =  filter.split("F")[0];
+                filter = filter.replace(order.户籍所在地 +"F","");
+
+                order.信用卡额度 =  filter.split("G")[0];
+                filter = filter.replace(order.信用卡额度 +"G","");
+
+                order.信用记录 =  filter.split("H")[0];
+                filter = filter.replace(order.信用记录 +"H","");
+
+                order.微粒贷额度 =  filter.split("I")[0];
+                filter = filter.replace(order.微粒贷额度 +"I","");
+
+                order.名下房产 =  filter.split("J")[0];
+                filter = filter.replace(order.名下房产 +"J","");
+
+                order.名下车产 =  filter.split("K")[0];
+                filter = filter.replace(order.名下车产 +"K","");
+
+                order.保单价值 =  filter;
+                valiData.add(order);
+            }
+        }
+        catch (Exception e){
+            return null;
+        }
+
+        return  valiData;
     }
 }
