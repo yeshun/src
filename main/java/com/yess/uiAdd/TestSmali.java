@@ -1,4 +1,4 @@
-package com.yess.uiAdd;
+package com.yess;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -182,12 +182,8 @@ public class TestSmali {
     //com/huijiemanager/ui/fragment/PageFragment$f
     public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
     {
-        if(allOrder.contains(bean))
-            allOrder.add(bean);
-
-        if(allPage.containsKey(bean))
-            allPage.put(bean,page);
-
+        allOrder.add(bean);
+        allPage.put(bean,page);
         try {
             if(instance == null) {
                 instance = new TestSmali();
@@ -212,6 +208,10 @@ public class TestSmali {
                             instance.button.setEnabled(false);
                             if(instance.editText == null)
                                 instance.InitEditText();
+                            else
+                                instance.editText.setEnabled(true);
+
+                            instance.button.setText("保存");
                         }
                         else if (instance.button.getText().equals("开始")) {
                             instance.button.setText("暂停");
@@ -258,7 +258,11 @@ public class TestSmali {
                             }
                         }
                         else if(instance.button.getText().equals("暂停"))
+                        {
                             instance.button.setText("开始");
+                            instance.editText.setEnabled(true);
+                        }
+
                     }
                 });
                 instance.relative.addView(instance.button);
@@ -270,8 +274,29 @@ public class TestSmali {
                 instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
                 instance.mainActivity.addContentView(instance.relative, lp);
             }
-        }catch (Exception e){
 
+            else if(instance.button.getText().equals("暂停") && startAgent){
+                startAgent = false;
+                QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
+                lastFragment = allPage.get(orderBean);
+                if(!rededOrders.contains(orderBean.getId()))
+                    rededOrders.add(orderBean.getId());
+
+                startAgent = false;
+                StringBuilder parmeras = new StringBuilder();
+                parmeras.append(orderBean.getId());
+                parmeras.append("");
+
+                String parmera = parmeras.toString();
+
+                Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
+                intent.putExtra("id",parmera);
+
+                lastFragment.startActivityForResult(intent,0);
+
+                LogStr("开始检查第一个订单 ：" +orderBean.getUserDesc());
+            }
+        }catch (Exception e){
         }
     }
 
@@ -283,13 +308,13 @@ public class TestSmali {
         instance.editText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                instance.button.setText("保存");
+                // instance.button.setText("保存");
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if(!instance.button.getText().equals("保存"))
-                    instance.button.setText("保存");
+       /*         if(!instance.button.getText().equals("保存"))
+                    instance.button.setText("保存");*/
                 instance.button.setEnabled(count > 0);
             }
 
@@ -620,31 +645,28 @@ public class TestSmali {
             return  null;
 
         try {
-            Base64.Decoder base64De = java.util.Base64.getDecoder();
-            String decodeAgin = new String(base64De.decode(yessKeys), "GBK");
-
-            String decodeTwice = new String(base64De.decode(decodeAgin), "UTF-8");
+            String decodeAgin = new String( android.util.Base64.decode(yessKeys, android.util.Base64.NO_WRAP));
             /*
 
             上海~2018-5-23Space00:00:00!22L50@3000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30万||3001#现金发放;连续3个月%连续2个月^12个月以上&珠海*深圳(8888)2年内逾期少于4次且少于93天_10001+有房产,可接受抵押{有车产,不接受抵押}33万
             */
 
             OrdreFilter headData = new OrdreFilter();
-            headData.cityFlag = decodeTwice.split("M")[0];
-            decodeTwice = decodeTwice.replace(headData.cityFlag+"M","");
-            String dataStr = decodeTwice.split("N")[0];
+            headData.cityFlag = decodeAgin.split("M")[0];
+            decodeAgin = decodeAgin.replace(headData.cityFlag+"M","");
+            String dataStr = decodeAgin.split("N")[0];
             headData.lockFlag =dataStr .replace("Space"," ");
-            decodeTwice = decodeTwice.replace(dataStr+"N","");
-            String ageStr =  decodeTwice.split("O")[0];
+            decodeAgin = decodeAgin.replace(dataStr+"N","");
+            String ageStr =  decodeAgin.split("O")[0];
             if(!ageStr.isEmpty())
             {
                 String[] ageArray = ageStr.split("L");
                 headData.minAge = Integer.parseInt(ageArray[0]);
                 headData.maxAge = Integer.parseInt(ageArray[1]);
             }
-            decodeTwice = decodeTwice.replace(ageStr+"O","");
+            decodeAgin = decodeAgin.replace(ageStr+"O","");
 
-            String[] filterArr = decodeTwice.split("\\|\\|");
+            String[] filterArr = decodeAgin.split("\\|\\|");
 
             valiData = new ArrayList<OrdreFilter>();
             if(filterArr.length  == 0)
@@ -702,6 +724,8 @@ public class TestSmali {
             }
         }
         catch (Exception e){
+
+            LogStr(         e.getStackTrace().toString());
             return null;
         }
 

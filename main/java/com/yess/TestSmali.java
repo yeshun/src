@@ -308,7 +308,7 @@ public class TestSmali {
         instance.editText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-               // instance.button.setText("保存");
+                // instance.button.setText("保存");
             }
 
             @Override
@@ -393,342 +393,342 @@ public class TestSmali {
         if(instance.filters == null)
             return;
 
-       for (OrdreFilter filter : instance.filters)
-       {
-           boolean bCity = detailData.city.contains(filter.cityFlag);
-           int ageVal = Integer.parseInt(detailData.age);
-           boolean bAge = ageVal <= filter.maxAge && ageVal >= filter.minAge ;
-           boolean canMonopoly = detailData.can_collect.equals("1") && detailData.can_monopoly;
-           boolean bLock = IsLock(filter.lockFlag);
-           if(bLock)
-           {
-               instance.CreateYessKeys("服务到期，请联系管理员续费");
-               instance.button.setText("激活");
-           }
+        for (OrdreFilter filter : instance.filters)
+        {
+            boolean bCity = detailData.city.contains(filter.cityFlag);
+            int ageVal = Integer.parseInt(detailData.age);
+            boolean bAge = ageVal <= filter.maxAge && ageVal >= filter.minAge ;
+            boolean canMonopoly = detailData.can_collect.equals("1") && detailData.can_monopoly;
+            boolean bLock = IsLock(filter.lockFlag);
+            if(bLock)
+            {
+                instance.CreateYessKeys("服务到期，请联系管理员续费");
+                instance.button.setText("激活");
+            }
 
-           if(!bCity ||!bAge ||!canMonopoly||bLock)
-           {
-               bSubmit = false;
-               break;
-           }
+            if(!bCity ||!bAge ||!canMonopoly||bLock)
+            {
+                bSubmit = false;
+                break;
+            }
 
-           boolean allCondition = true;
-           for (MyInforCreditResponse response  :detailData.user_info_list) {
-               for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
+            boolean allCondition = true;
+            for (MyInforCreditResponse response  :detailData.user_info_list) {
+                for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
-                   if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
-                   {
-                       String 收入字符 = info.getC_value().replace("元","");
-                       int 收入 =Integer.valueOf(收入字符);
-                       int 目标收入 =Integer.valueOf(filter.月收入);
-                       if (收入 < 目标收入)
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
+                    {
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.月收入);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
-                   {
-                       if (!info.getC_value().equals(filter.本地社保))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
+                    {
+                        if (!info.getC_value().equals(filter.本地社保))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
-                   {
-                       if (!info.getC_value().equals(filter.本地公积金))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
+                    {
+                        if (!info.getC_value().equals(filter.本地公积金))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
-                   {
-                       if (!info.getC_value().equals(filter.当前单位工龄))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
+                    {
+                        if (!info.getC_value().equals(filter.当前单位工龄))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
-                   {
-                       if (!info.getC_value().contains(filter.手机归属地))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
+                    {
+                        if (!info.getC_value().contains(filter.手机归属地))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
-                   {
-                       if (!info.getC_value().contains(filter.户籍所在地))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
+                    {
+                        if (!info.getC_value().contains(filter.户籍所在地))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
-                   {
-                       String 收入字符 = info.getC_value().replace("元","");
-                       int 收入 =Integer.valueOf(收入字符);
-                       int 目标收入 =Integer.valueOf(filter.信用卡额度);
-                       if (收入 < 目标收入)
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
+                    {
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.信用卡额度);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
-                   {
-                       if (!filter.信用记录.contains(info.getC_value()))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
+                    {
+                        if (!filter.信用记录.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.微粒贷额度.contains("无") &&info.getC_name().equals("微粒贷额度"))
-                   {
-                       String 收入字符 = info.getC_value().replace("元","");
-                       int 收入 =Integer.valueOf(收入字符);
-                       int 目标收入 =Integer.valueOf(filter.微粒贷额度);
-                       if (收入 < 目标收入)
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.微粒贷额度.contains("无") &&info.getC_name().equals("微粒贷额度"))
+                    {
+                        String 收入字符 = info.getC_value().replace("元","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.微粒贷额度);
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
-                   {
-                       if (!filter.名下房产.contains(info.getC_value()))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
+                    {
+                        if (!filter.名下房产.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
-                   {
-                       if (!filter.名下车产.contains(info.getC_value()))
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
+                    {
+                        if (!filter.名下车产.contains(info.getC_value()))
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-                   if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
-                   {
-                       String 收入字符 = info.getC_value().replace("万","");
-                       int 收入 =Integer.valueOf(收入字符);
-                       int 目标收入 =Integer.valueOf(filter.微粒贷额度.replace("万",""));
-                       if (收入 < 目标收入)
-                       {
-                           allCondition = false;
-                           break;
-                       }
-                   }
+                    if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
+                    {
+                        String 收入字符 = info.getC_value().replace("万","");
+                        int 收入 =Integer.valueOf(收入字符);
+                        int 目标收入 =Integer.valueOf(filter.微粒贷额度.replace("万",""));
+                        if (收入 < 目标收入)
+                        {
+                            allCondition = false;
+                            break;
+                        }
+                    }
 
-               }
-           }
+                }
+            }
 
-           if(allCondition)
-           {
-               bSubmit = true;
-               break;
-           }else{
-               continue;
-           }
-       }
+            if(allCondition)
+            {
+                bSubmit = true;
+                break;
+            }else{
+                continue;
+            }
+        }
 
-       if(bSubmit)
-       {
-           new Handler().postDelayed(new Runnable(){
-               public void run() {
-                   HashMap paramView = new HashMap();
-                   paramView.put("order_id", String.valueOf(+currentData.id));
-                   paramView.put("click", "选择买断抢单");
-                   com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+            if(bSubmit)
+            {
+                new Handler().postDelayed(new Runnable(){
+                    public void run() {
+                        HashMap paramView = new HashMap();
+                        paramView.put("order_id", String.valueOf(+currentData.id));
+                        paramView.put("click", "选择买断抢单");
+                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
 
-                   paramView.put("order_id", String.valueOf(currentData.id));
-                   paramView.put("click", "立即抢单");
-                   com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-                   currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
-               }
-           }, delayInterval);
-       }else
-           AutoCloseDetail();
-    }
+                        paramView.put("order_id", String.valueOf(currentData.id));
+                        paramView.put("click", "立即抢单");
+                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+                        currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
+                    }
+                }, delayInterval);
+            }else
+                AutoCloseDetail();
+        }
 
-    private static NetworkHelper<b> _networkHelper = null;
-    private static HashMap requestMap = null;
+        private static NetworkHelper<b> _networkHelper = null;
+        private static HashMap requestMap = null;
 
-    public static  void SetNetworkHelper(NetworkHelper<b> paramNetworkHelper, HashMap localHashMap)
-    {
-        _networkHelper = paramNetworkHelper;
-        requestMap= localHashMap;
-    }
+        public static  void SetNetworkHelper(NetworkHelper<b> paramNetworkHelper, HashMap localHashMap)
+        {
+            _networkHelper = paramNetworkHelper;
+            requestMap= localHashMap;
+        }
 
-    private static PublicDetailActivity currentDetail;
-    private static  int currentInt;
-    private  static  PublicDetailResponse currentData;
+        private static PublicDetailActivity currentDetail;
+        private static  int currentInt;
+        private  static  PublicDetailResponse currentData;
 
-    public  static void SetDetail20(int parmera)
-    {
-        LogStr((currentDetail == null)+"");
-        //  private void a(int paramInt)
-        HashMap localHashMap = new HashMap();
-        localHashMap.put("default", Boolean.valueOf(currentDetail.aX));
-        localHashMap.put("order_price", currentDetail.aY);
-        com.huijiemanager.utils.k.a("xdj_discount_coupon", localHashMap);
-        currentDetail.I = Integer.valueOf(parmera);
+        public  static void SetDetail20(int parmera)
+        {
+            LogStr((currentDetail == null)+"");
+            //  private void a(int paramInt)
+            HashMap localHashMap = new HashMap();
+            localHashMap.put("default", Boolean.valueOf(currentDetail.aX));
+            localHashMap.put("order_price", currentDetail.aY);
+            com.huijiemanager.utils.k.a("xdj_discount_coupon", localHashMap);
+            currentDetail.I = Integer.valueOf(parmera);
 
-        //  private void b(int paramInt) ->  private void c(int paramInt)
-        HashMap parmeraHashMap = new HashMap();
-        parmeraHashMap.put("coupon_id", currentDetail.B);
-        parmeraHashMap.put("method", "独享");
-        parmeraHashMap.put("coupon_usable", Boolean.valueOf(false));
-        com.huijiemanager.utils.k.a("xdj_yhq_use", parmeraHashMap);
+            //  private void b(int paramInt) ->  private void c(int paramInt)
+            HashMap parmeraHashMap = new HashMap();
+            parmeraHashMap.put("coupon_id", currentDetail.B);
+            parmeraHashMap.put("method", "独享");
+            parmeraHashMap.put("coupon_usable", Boolean.valueOf(false));
+            com.huijiemanager.utils.k.a("xdj_yhq_use", parmeraHashMap);
 
 
-        currentDetail.ac.sendBuyLoanOrderRequest(_networkHelper, currentDetail, currentDetail.d.id.longValue(), 1,
-                currentDetail.d.operationActivityId, currentDetail.B);
+            currentDetail.ac.sendBuyLoanOrderRequest(_networkHelper, currentDetail, currentDetail.d.id.longValue(), 1,
+                    currentDetail.d.operationActivityId, currentDetail.B);
 
-        LogStr("发送确认抢单消息");
+            LogStr("发送确认抢单消息");
 
-        if(detailClose != null || currentDetail != null)
+            if(detailClose != null || currentDetail != null)
+                AutoCloseDetail();
+        }
+
+        public  static void SuccessClose(PublicDetailActivity detailActivitys)
+        {
+            if(detailClose == null || currentDetail == null)
+                return;
+
             AutoCloseDetail();
-    }
+        }
 
-    public  static void SuccessClose(PublicDetailActivity detailActivitys)
-    {
-        if(detailClose == null || currentDetail == null)
-            return;
+        class OrdreFilter{
 
-        AutoCloseDetail();
-    }
+            public String  cityFlag;
+            public String lockFlag;
+            public int minAge;
+            public int maxAge;
 
-    class OrdreFilter{
+            public String 月收入;  //xx元
+            public String 收入形式; //转账工资，现金发放，银行转账
+            public String 本地社保;//无本地社保，连续6个月
+            public String 本地公积金;//无本地公积金，连续6个月
+            public String 当前单位工龄;//6个月以上
+            public String 手机归属地;//市级包含检查
+            public String 户籍所在地;//市级包含检查
+            public String 信用卡额度;//xx元
+            public String 信用记录;//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
+            public String 微粒贷额度;//xxx元
+            public  String 名下房产;//有房产,不接受抵押
+            public  String 名下车产;//有车产,不接受抵押
+            public  String 保单价值;//有房产,不接受抵押
+        }
 
-        public String  cityFlag;
-        public String lockFlag;
-        public int minAge;
-        public int maxAge;
+        @TargetApi(Build.VERSION_CODES.O)
+        public List<OrdreFilter> ParseYessKey(String yessKeys)
+        {
+            List<OrdreFilter> valiData = null;
+            if(yessKeys.isEmpty())
+                return  null;
 
-        public String 月收入;  //xx元
-        public String 收入形式; //转账工资，现金发放，银行转账
-        public String 本地社保;//无本地社保，连续6个月
-        public String 本地公积金;//无本地公积金，连续6个月
-        public String 当前单位工龄;//6个月以上
-        public String 手机归属地;//市级包含检查
-        public String 户籍所在地;//市级包含检查
-        public String 信用卡额度;//xx元
-        public String 信用记录;//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
-        public String 微粒贷额度;//xxx元
-        public  String 名下房产;//有房产,不接受抵押
-        public  String 名下车产;//有车产,不接受抵押
-        public  String 保单价值;//有房产,不接受抵押
-    }
-
-    @TargetApi(Build.VERSION_CODES.O)
-    public List<OrdreFilter> ParseYessKey(String yessKeys)
-    {
-        List<OrdreFilter> valiData = null;
-        if(yessKeys.isEmpty())
-            return  null;
-
-        try {
-            String decodeAgin = new String( android.util.Base64.decode(yessKeys, android.util.Base64.NO_WRAP));
+            try {
+                String decodeAgin = new String( android.util.Base64.decode(yessKeys, android.util.Base64.NO_WRAP));
             /*
 
             上海~2018-5-23Space00:00:00!22L50@3000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30万||3001#现金发放;连续3个月%连续2个月^12个月以上&珠海*深圳(8888)2年内逾期少于4次且少于93天_10001+有房产,可接受抵押{有车产,不接受抵押}33万
             */
 
-            OrdreFilter headData = new OrdreFilter();
-            headData.cityFlag = decodeAgin.split("M")[0];
-            decodeAgin = decodeAgin.replace(headData.cityFlag+"M","");
-            String dataStr = decodeAgin.split("N")[0];
-            headData.lockFlag =dataStr .replace("Space"," ");
-            decodeAgin = decodeAgin.replace(dataStr+"N","");
-            String ageStr =  decodeAgin.split("O")[0];
-            if(!ageStr.isEmpty())
-            {
-                String[] ageArray = ageStr.split("L");
-                headData.minAge = Integer.parseInt(ageArray[0]);
-                headData.maxAge = Integer.parseInt(ageArray[1]);
-            }
-            decodeAgin = decodeAgin.replace(ageStr+"O","");
+                OrdreFilter headData = new OrdreFilter();
+                headData.cityFlag = decodeAgin.split("M")[0];
+                decodeAgin = decodeAgin.replace(headData.cityFlag+"M","");
+                String dataStr = decodeAgin.split("N")[0];
+                headData.lockFlag =dataStr .replace("Space"," ");
+                decodeAgin = decodeAgin.replace(dataStr+"N","");
+                String ageStr =  decodeAgin.split("O")[0];
+                if(!ageStr.isEmpty())
+                {
+                    String[] ageArray = ageStr.split("L");
+                    headData.minAge = Integer.parseInt(ageArray[0]);
+                    headData.maxAge = Integer.parseInt(ageArray[1]);
+                }
+                decodeAgin = decodeAgin.replace(ageStr+"O","");
 
-            String[] filterArr = decodeAgin.split("\\|\\|");
+                String[] filterArr = decodeAgin.split("\\|\\|");
 
-            valiData = new ArrayList<OrdreFilter>();
-            if(filterArr.length  == 0)
-            {
-                valiData.add(headData);
-                return  valiData;
-            }
+                valiData = new ArrayList<OrdreFilter>();
+                if(filterArr.length  == 0)
+                {
+                    valiData.add(headData);
+                    return  valiData;
+                }
 
-            for (String filter:filterArr) {
+                for (String filter:filterArr) {
                     //000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30
-                OrdreFilter order = new OrdreFilter();
-                order.cityFlag = headData.cityFlag;
-                order.lockFlag = headData.lockFlag;
-                order.minAge = headData.minAge;
-                order.maxAge = headData.maxAge;
+                    OrdreFilter order = new OrdreFilter();
+                    order.cityFlag = headData.cityFlag;
+                    order.lockFlag = headData.lockFlag;
+                    order.minAge = headData.minAge;
+                    order.maxAge = headData.maxAge;
 
-                order.月收入 =  filter.split("#")[0];
-                filter = filter.replace(order.月收入 +"#","");
+                    order.月收入 =  filter.split("#")[0];
+                    filter = filter.replace(order.月收入 +"#","");
 
-                order.收入形式 =  filter.split("A")[0];
-                filter = filter.replace(order.收入形式 +"A","");
+                    order.收入形式 =  filter.split("A")[0];
+                    filter = filter.replace(order.收入形式 +"A","");
 
-                order.本地社保 =  filter.split("B")[0];
-                filter = filter.replace(order.本地社保 +"B","");
+                    order.本地社保 =  filter.split("B")[0];
+                    filter = filter.replace(order.本地社保 +"B","");
 
-                order.本地公积金 =  filter.split("C")[0];
-                filter = filter.replace(order.本地公积金 +"C","");
+                    order.本地公积金 =  filter.split("C")[0];
+                    filter = filter.replace(order.本地公积金 +"C","");
 
-                order.当前单位工龄 =  filter.split("D")[0];
-                filter = filter.replace(order.当前单位工龄 +"D","");
+                    order.当前单位工龄 =  filter.split("D")[0];
+                    filter = filter.replace(order.当前单位工龄 +"D","");
 
-                order.手机归属地 =  filter.split("E")[0];
-                filter = filter.replace(order.手机归属地 +"E","");
+                    order.手机归属地 =  filter.split("E")[0];
+                    filter = filter.replace(order.手机归属地 +"E","");
 
-                order.户籍所在地 =  filter.split("F")[0];
-                filter = filter.replace(order.户籍所在地 +"F","");
+                    order.户籍所在地 =  filter.split("F")[0];
+                    filter = filter.replace(order.户籍所在地 +"F","");
 
-                order.信用卡额度 =  filter.split("G")[0];
-                filter = filter.replace(order.信用卡额度 +"G","");
+                    order.信用卡额度 =  filter.split("G")[0];
+                    filter = filter.replace(order.信用卡额度 +"G","");
 
-                order.信用记录 =  filter.split("H")[0];
-                filter = filter.replace(order.信用记录 +"H","");
+                    order.信用记录 =  filter.split("H")[0];
+                    filter = filter.replace(order.信用记录 +"H","");
 
-                order.微粒贷额度 =  filter.split("I")[0];
-                filter = filter.replace(order.微粒贷额度 +"I","");
+                    order.微粒贷额度 =  filter.split("I")[0];
+                    filter = filter.replace(order.微粒贷额度 +"I","");
 
-                order.名下房产 =  filter.split("J")[0];
-                filter = filter.replace(order.名下房产 +"J","");
+                    order.名下房产 =  filter.split("J")[0];
+                    filter = filter.replace(order.名下房产 +"J","");
 
-                order.名下车产 =  filter.split("K")[0];
-                filter = filter.replace(order.名下车产 +"K","");
+                    order.名下车产 =  filter.split("K")[0];
+                    filter = filter.replace(order.名下车产 +"K","");
 
-                order.保单价值 =  filter;
-                valiData.add(order);
+                    order.保单价值 =  filter;
+                    valiData.add(order);
+                }
             }
-        }
-        catch (Exception e){
+            catch (Exception e){
 
-             LogStr(         e.getStackTrace().toString());
-            return null;
-        }
+                LogStr(         e.getStackTrace().toString());
+                return null;
+            }
 
-        return  valiData;
+            return  valiData;
+        }
     }
-}
