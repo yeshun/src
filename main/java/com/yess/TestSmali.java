@@ -406,6 +406,9 @@ public class TestSmali {
 
         for (OrdreFilter filter : instance.filters)
         {
+            if(bSubmit)
+                break;
+
             boolean bCity = detailData.city.contains(filter.cityFlag);
             int ageVal = Integer.parseInt(detailData.age);
             boolean bAge = ageVal <= filter.maxAge && ageVal >= filter.minAge ;
@@ -423,163 +426,169 @@ public class TestSmali {
                 break;
             }
 
-            boolean allCondition = true;
-            for (MyInforCreditResponse response  :detailData.user_info_list) {
-
-                if(!allCondition)
-                    break;
-
-                for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
-
-                    if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
-                    {
-                        String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.parseInt(收入字符);
-                        int 目标收入 =Integer.parseInt(filter.月收入);
-                        if (收入 < 目标收入)
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
-                    {
-                        if (!info.getC_value().equals(filter.本地社保))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
-                    {
-                        if (!info.getC_value().equals(filter.本地公积金))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
-                    {
-                        if (!info.getC_value().equals(filter.当前单位工龄))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
-                    {
-                        if (!info.getC_value().contains(filter.手机归属地))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
-                    {
-                        if (!info.getC_value().contains(filter.户籍所在地))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
-                    {
-                        String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.parseInt(收入字符);
-                        int 目标收入 =Integer.parseInt(filter.信用卡额度);
-                        if (收入 < 目标收入)
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
-                    {
-                        if (!filter.信用记录.contains(info.getC_value()))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.微粒贷额度.contains("无") &&(info.getC_name().equals("微粒贷额度") || info.getC_name().equals("微粒贷总额度")))
-                    {
-                        String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.parseInt(收入字符);
-                        int 目标收入 =Integer.parseInt(filter.微粒贷额度);
-                        if (收入 < 目标收入)
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
-                    {
-                        if (!filter.名下房产.contains(info.getC_value()))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
-                    {
-                        if (!filter.名下车产.contains(info.getC_value()))
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                    if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
-                    {
-                        String 收入字符 = info.getC_value().replace("万","");
-                        int 收入 =Integer.parseInt(收入字符);
-                        int 目标收入 =Integer.parseInt(filter.微粒贷额度.replace("万",""));
-                        if (收入 < 目标收入)
-                        {
-                            allCondition = false;
-                            break;
-                        }
-                    }
-
-                }
-            }
-
-            if(allCondition)
-            {
+            int validata = filter.ValiCount();
+            if(validata == 0) {
                 bSubmit = true;
                 break;
-            }else{
-                continue;
+            }
+            else{
+                List<Boolean> allCondition = new ArrayList<Boolean>();
+
+                for (MyInforCreditResponse response  :detailData.user_info_list) {
+
+                    for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
+
+                        if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
+                        {
+                            String 收入字符 = info.getC_value().replace("元","");
+                            int 收入 =Integer.parseInt(收入字符);
+                            int 目标收入 =Integer.parseInt(filter.月收入);
+                            if (收入 >= 目标收入)
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.收入形式.contains("无") &&info.getC_name().equals("收入形式"))
+                        {
+                            if (filter.收入形式.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+
+                        if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
+                        {
+                            if (filter.本地社保.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
+                        {
+                            if (filter.本地公积金.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
+                        {
+                            if (filter.当前单位工龄.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
+                        {
+                            if (filter.手机归属地.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
+                        {
+                            if (filter.户籍所在地.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
+                        {
+                            String 收入字符 = info.getC_value().replace("元","");
+                            int 收入 =Integer.parseInt(收入字符);
+                            int 目标收入 =Integer.parseInt(filter.信用卡额度);
+                            if (收入 >= 目标收入)
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
+                        {
+                            if (filter.信用记录.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.微粒贷额度.equals("无") &&(info.getC_name().equals("微粒贷额度") || info.getC_name().equals("微粒贷总额度")))
+                        {
+                            String 收入字符 = info.getC_value().replace("元","");
+                            int 收入 =Integer.parseInt(收入字符);
+                            int 目标收入 =Integer.parseInt(filter.微粒贷额度);
+                          //  LogStr("目标收入 : " +目标收入 + " 收入 : " +收入);
+                            if (收入 >= 目标收入)
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
+                        {
+                            if (filter.名下房产.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
+                        {
+                            if (filter.名下车产.contains(info.getC_value()))
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+
+                        if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
+                        {
+                            String 收入字符 = info.getC_value().replace("万","");
+                            int 收入 =Integer.parseInt(收入字符);
+                            int 目标收入 =Integer.parseInt(filter.保单价值.replace("万",""));
+                            if (收入 >= 目标收入)
+                                allCondition.add(true);
+                            else
+                                allCondition.add(false);
+                        }
+                    }
+                }
+
+                if(allCondition.size() == validata && !allCondition.contains(false))
+                {
+                   // LogStr("==============>"+validata);
+                    bSubmit = true;
+                    break;
+                }else
+                    continue;
             }
         }
 
-            if(bSubmit)
-            {
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        HashMap paramView = new HashMap();
-                        paramView.put("order_id", String.valueOf(+currentData.id));
-                        paramView.put("click", "选择买断抢单");
-                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+        if(bSubmit)
+            instance.SubmitBuyRequest();
+        else
+            AutoCloseDetail();
+        }
 
-                        paramView.put("order_id", String.valueOf(currentData.id));
-                        paramView.put("click", "立即抢单");
-                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-                        currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
-                    }
-                }, delayInterval);
-            }else
-                AutoCloseDetail();
+        public void SubmitBuyRequest()
+        {
+            new Handler().postDelayed(new Runnable(){
+                public void run() {
+                    HashMap paramView = new HashMap();
+                    paramView.put("order_id", String.valueOf(+currentData.id));
+                    paramView.put("click", "选择买断抢单");
+                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+
+                    paramView.put("order_id", String.valueOf(currentData.id));
+                    paramView.put("click", "立即抢单");
+                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+                    currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
+                }
+            }, delayInterval);
         }
 
         private static NetworkHelper<b> _networkHelper = null;
@@ -630,7 +639,7 @@ public class TestSmali {
             AutoCloseDetail();
         }
 
-        class OrdreFilter{
+     class OrdreFilter{
 
             public String  cityFlag;
             public String lockFlag;
@@ -639,19 +648,134 @@ public class TestSmali {
             public int autoCloseCount;
             public int orderInterval;
 
-            public String 月收入;  //xx元
-            public String 收入形式; //转账工资，现金发放，银行转账
-            public String 本地社保;//无本地社保，连续6个月
-            public String 本地公积金;//无本地公积金，连续6个月
-            public String 当前单位工龄;//6个月以上
-            public String 手机归属地;//市级包含检查
-            public String 户籍所在地;//市级包含检查
-            public String 信用卡额度;//xx元
-            public String 信用记录;//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
-            public String 微粒贷额度;//xxx元
-            public  String 名下房产;//有房产,不接受抵押
-            public  String 名下车产;//有车产,不接受抵押
-            public  String 保单价值;//有房产,不接受抵押
+            public String 月收入 = "";  //xx元
+            public String 收入形式= ""; //转账工资，现金发放，银行转账
+            public String 本地社保= "";//无本地社保，连续6个月
+            public String 本地公积金= "";//无本地公积金，连续6个月
+            public String 当前单位工龄= "";//6个月以上
+            public String 手机归属地= "";//市级包含检查
+            public String 户籍所在地= "";//市级包含检查
+            public String 信用卡额度= "";//xx元
+            public String 信用记录= "";//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
+            public String 微粒贷额度= "";//xxx元
+            public  String 名下房产= "";//有房产,不接受抵押
+            public  String 名下车产= "";//有车产,不接受抵押
+            public  String 保单价值= "";//有房产,不接受抵押
+
+            public  int GetValiIndex(String filedName){
+                int index = 0;
+                if (!月收入.contains("无"))
+                {
+                    if(filedName.equals("月收入"))
+                        return index;
+                    index++;
+                }
+                if (!收入形式.contains("无"))
+                {
+                    if(filedName.equals("收入形式"))
+                        return index;
+                    index++;
+                }
+                if (!本地社保.contains("无"))
+                {
+                    if(filedName.equals("本地社保"))
+                        return index;
+                    index++;
+                }
+                if (!本地公积金.contains("无"))
+                {
+                    if(filedName.equals("本地公积金"))
+                        return index;
+                    index++;
+                }
+                if (!当前单位工龄.contains("无"))
+                {
+                    if(filedName.equals("当前单位工龄"))
+                        return index;
+                    index++;
+                }
+                if (!手机归属地.contains("无"))
+                {
+                    if(filedName.equals("手机归属地"))
+                        return index;
+                    index++;
+                }
+                if (!户籍所在地.contains("无"))
+                {
+                    if(filedName.equals("户籍所在地"))
+                        return index;
+                    index++;
+                }
+                if (!信用卡额度.contains("无"))
+                {
+                    if(filedName.equals("信用卡额度"))
+                        return index;
+                    index++;
+                }
+                if (!信用记录.equals("无"))
+                {
+                    if(filedName.equals("信用记录"))
+                        return index;
+                    index++;
+                }
+                if (!微粒贷额度.equals("无"))
+                {
+                    if(filedName.equals("微粒贷额度"))
+                        return index;
+                    index++;
+                }
+                if (!名下房产.equals("无"))
+                {
+                    if(filedName.equals("名下房产"))
+                        return index;
+                    index++;
+                }
+                if (!名下车产.equals("无"))
+                {
+                    if(filedName.equals("名下车产"))
+                        return index;
+                    index++;
+                }
+                if (!保单价值.equals("无"))
+                {
+                    if(filedName.equals("保单价值"))
+                        return index;
+                    index++;
+                }
+                return index;
+            }
+
+            public  int ValiCount()
+            {
+                int count = 0;
+                if (!月收入.equals("无"))
+                    count++;
+                if (!收入形式.equals("无"))
+                    count++;
+                if (!本地社保.equals("无"))
+                    count++;
+                if (!本地公积金.equals("无"))
+                    count++;
+                if (!当前单位工龄.equals("无"))
+                    count++;
+                if (!手机归属地.equals("无"))
+                    count++;
+                if (!户籍所在地.equals("无"))
+                    count++;
+                if (!信用卡额度.equals("无"))
+                    count++;
+                if (!信用记录.equals("无"))
+                    count++;
+                if (!微粒贷额度.equals("无"))
+                    count++;
+                if (!名下房产.equals("无"))
+                    count++;
+                if (!名下车产.equals("无"))
+                    count++;
+                if (!保单价值.equals("无"))
+                    count++;
+                return  count;
+            }
         }
 
         @TargetApi(Build.VERSION_CODES.O)

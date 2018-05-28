@@ -1,6 +1,7 @@
 package com.yess;
 import android.util.Base64;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -41,7 +42,7 @@ public class TestString {
             "无K" +
             "无" ;
         try{
-            content = content.trim();
+          /* content = content.trim();
             byte[] codeArray = content.getBytes("UTF-8");
             String enStr = new String(Base64.encode(codeArray, Base64.NO_WRAP)) ;
             System.out.println(enStr);
@@ -66,8 +67,17 @@ public class TestString {
                     System.out.println("保单价值 : " +order.保单价值);
                     System.out.println("==================================================================");
                 }
-            }
+            }*/
 
+            List<Boolean> allCondition = new ArrayList<Boolean>();
+            allCondition.add(false);
+            System.out.println(allCondition.contains(false));
+
+        /*    TestSmali.OrdreFilter filter = new TestSmali.OrdreFilter();
+            filter.微粒贷额度 = "无";
+            filter.微粒贷额度 = "无";
+            filter.收入形式 = "无";
+            System.out.println(filter.ValiCount());*/
         } catch ( Exception e){
             e.printStackTrace();
         }
