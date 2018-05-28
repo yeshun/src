@@ -23,15 +23,16 @@ public class killSelfService extends Service {
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
         //stopDelayed=intent.getLongExtra("Delayed",2000);
-       // PackageName=intent.getStringExtra("PackageName");
+       PackageName=intent.getStringExtra("PackageName");
 
         instance = TestSmali.instance;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                Intent LaunchIntent = getPackageManager().getLaunchIntentForPackage("com.huijiemanager");
+                Intent LaunchIntent = getPackageManager().getLaunchIntentForPackage(PackageName);
                 startActivity(LaunchIntent);
                 TestSmali.startAgent = true;
+                TestSmali.autoCheck = true;
                 killSelfService.this.stopSelf();
 
             }

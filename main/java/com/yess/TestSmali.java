@@ -61,9 +61,11 @@ public class TestSmali {
 
     public static  boolean startAgent = false;
 
+    public static  boolean autoCheck = false;
+
     private static MenuItem detailClose;
 
-    private  static  ArrayList<Integer> rededOrders = new ArrayList<Integer>();
+    private  static  ArrayList<Integer> rededOrders;
     public static ArrayList<QuareOrderFiltrateResponse.OrdersBean> allOrder = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
     public static HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment> allPage = new HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment>();
     // private static int queryCounter = 5;
@@ -78,7 +80,7 @@ public class TestSmali {
 
     private int orderCount;
 
-    private static int autoCount = 80;
+    private static int autoCount =10;
 
     public static void DetailClose(MenuItem close)
     {
@@ -133,7 +135,7 @@ public class TestSmali {
                 Context context = instance.mainActivity.getBaseContext();
                 Intent intent1=new Intent(context,killSelfService.class);
                 intent1.putExtra("PackageName",context.getPackageName());
-                intent1.putExtra("Delayed",2000);
+               // intent1.putExtra("Delayed",2000);
                 context.startService(intent1);
 
                 allOrder.clear();
@@ -171,7 +173,8 @@ public class TestSmali {
             SimpleDateFormat formatter   =   new   SimpleDateFormat   ("yyyy-MM-dd HH:mm:ss");
             Date curDate =  new Date(System.currentTimeMillis());
             Date lockData =  formatter.parse(lockStr);
-            return  lockData.getTime() < curDate.getTime();
+            Date updateData =  formatter.parse("2018-8-30 00:00:00");
+            return  lockData.getTime() < curDate.getTime() || updateData.getTime() < curDate.getTime();
         }
         catch (Exception e){
 
@@ -182,12 +185,14 @@ public class TestSmali {
     //com/huijiemanager/ui/fragment/PageFragment$f
     public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
     {
+       // LogStr("startAgent : " +startAgent);
         allOrder.add(bean);
         allPage.put(bean,page);
         try {
             if(instance == null) {
                 instance = new TestSmali();
                 instance.mainActivity = page.getActivity();
+                rededOrders = new ArrayList<Integer>();
 
                 View view = page.getView().getRootView();
                 instance.relative = new RelativeLayout(view.getContext());
@@ -214,14 +219,19 @@ public class TestSmali {
                             instance.button.setText("保存");
                         }
                         else if (instance.button.getText().equals("开始")) {
-                            instance.button.setText("暂停");
 
                             //激活机器人自动接单流程
                             if(instance.editText == null)
                                 instance.InitEditText();
                             instance.editText.setText(instance.CheckYessKeys(instance.mainActivity));
                             instance.editText.setEnabled(false);
+
+                            instance.button.setText("暂停");
+                            autoCheck = true;
+
                             instance.filters = instance.ParseYessKey(instance.editText.getText().toString());
+                            autoCount = instance.filters.get(0).autoCloseCount;
+                            delayInterval = instance.filters.get(0).orderInterval;
 
                             QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
                             lastFragment = allPage.get(orderBean);
@@ -259,8 +269,10 @@ public class TestSmali {
                         }
                         else if(instance.button.getText().equals("暂停"))
                         {
+                            autoCheck = false;
                             instance.button.setText("开始");
-                            instance.editText.setEnabled(true);
+                            if(instance.editText != null)
+                                instance.editText.setEnabled(true);
                         }
 
                     }
@@ -274,15 +286,14 @@ public class TestSmali {
                 instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
                 instance.mainActivity.addContentView(instance.relative, lp);
             }
-
-            else if(instance.button.getText().equals("暂停") && startAgent){
+            else if(instance.filters != null && rededOrders != null && startAgent && autoCheck){
                 startAgent = false;
                 QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
                 lastFragment = allPage.get(orderBean);
                 if(!rededOrders.contains(orderBean.getId()))
                     rededOrders.add(orderBean.getId());
 
-                startAgent = false;
+                instance.button.setText("暂停");
                 StringBuilder parmeras = new StringBuilder();
                 parmeras.append(orderBean.getId());
                 parmeras.append("");
@@ -294,7 +305,7 @@ public class TestSmali {
 
                 lastFragment.startActivityForResult(intent,0);
 
-                LogStr("开始检查第一个订单 ：" +orderBean.getUserDesc());
+                LogStr("重启后自动检查第一个 ：" +orderBean.getUserDesc());
             }
         }catch (Exception e){
         }
@@ -414,13 +425,17 @@ public class TestSmali {
 
             boolean allCondition = true;
             for (MyInforCreditResponse response  :detailData.user_info_list) {
+
+                if(!allCondition)
+                    break;
+
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
                     if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
                     {
                         String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.valueOf(收入字符);
-                        int 目标收入 =Integer.valueOf(filter.月收入);
+                        int 收入 =Integer.parseInt(收入字符);
+                        int 目标收入 =Integer.parseInt(filter.月收入);
                         if (收入 < 目标收入)
                         {
                             allCondition = false;
@@ -476,8 +491,8 @@ public class TestSmali {
                     if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
                     {
                         String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.valueOf(收入字符);
-                        int 目标收入 =Integer.valueOf(filter.信用卡额度);
+                        int 收入 =Integer.parseInt(收入字符);
+                        int 目标收入 =Integer.parseInt(filter.信用卡额度);
                         if (收入 < 目标收入)
                         {
                             allCondition = false;
@@ -494,11 +509,11 @@ public class TestSmali {
                         }
                     }
 
-                    if (!filter.微粒贷额度.contains("无") &&info.getC_name().equals("微粒贷额度"))
+                    if (!filter.微粒贷额度.contains("无") &&(info.getC_name().equals("微粒贷额度") || info.getC_name().equals("微粒贷总额度")))
                     {
                         String 收入字符 = info.getC_value().replace("元","");
-                        int 收入 =Integer.valueOf(收入字符);
-                        int 目标收入 =Integer.valueOf(filter.微粒贷额度);
+                        int 收入 =Integer.parseInt(收入字符);
+                        int 目标收入 =Integer.parseInt(filter.微粒贷额度);
                         if (收入 < 目标收入)
                         {
                             allCondition = false;
@@ -527,8 +542,8 @@ public class TestSmali {
                     if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
                     {
                         String 收入字符 = info.getC_value().replace("万","");
-                        int 收入 =Integer.valueOf(收入字符);
-                        int 目标收入 =Integer.valueOf(filter.微粒贷额度.replace("万",""));
+                        int 收入 =Integer.parseInt(收入字符);
+                        int 目标收入 =Integer.parseInt(filter.微粒贷额度.replace("万",""));
                         if (收入 < 目标收入)
                         {
                             allCondition = false;
@@ -621,6 +636,8 @@ public class TestSmali {
             public String lockFlag;
             public int minAge;
             public int maxAge;
+            public int autoCloseCount;
+            public int orderInterval;
 
             public String 月收入;  //xx元
             public String 收入形式; //转账工资，现金发放，银行转账
@@ -647,8 +664,38 @@ public class TestSmali {
             try {
                 String decodeAgin = new String( android.util.Base64.decode(yessKeys, android.util.Base64.NO_WRAP));
             /*
-
-            上海~2018-5-23Space00:00:00!22L50@3000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30万||3001#现金发放;连续3个月%连续2个月^12个月以上&珠海*深圳(8888)2年内逾期少于4次且少于93天_10001+有房产,可接受抵押{有车产,不接受抵押}33万
+                   String content = "上海M" +
+                "2018-6-23Space00:00:00N" +
+                "22L50O" +
+                 "88P"+
+                "60Q"+
+                "3000#" +
+                "银行转账A" +
+                "连续6个月B" +
+                "连续6个月C" +
+                "6个月以上D" +
+                "上海E" +
+                "上海F" +
+                "8000G" +
+                "1年内逾期少于3次且少于90天H" +
+                "10000I" +
+                "有房产,可接受抵押J" +
+                "有车产,不接受抵押K" +
+                "30万" +
+                "||" +
+                "无#" +
+                "无A" +
+                "无B" +
+                "无C" +
+                "无D" +
+                "无E" +
+                "无F" +
+                "无G" +
+                "无H" +
+                "无I" +
+                "无J" +
+                "无K" +
+                "无" ;
             */
 
                 OrdreFilter headData = new OrdreFilter();
@@ -666,6 +713,14 @@ public class TestSmali {
                 }
                 decodeAgin = decodeAgin.replace(ageStr+"O","");
 
+                String countStr =  decodeAgin.split("P")[0];
+                headData.autoCloseCount = Integer.parseInt(countStr);
+                decodeAgin = decodeAgin.replace(countStr+"P","");
+
+                String intervalStr =  decodeAgin.split("Q")[0];
+                headData.orderInterval = Integer.parseInt(intervalStr);
+                decodeAgin = decodeAgin.replace(intervalStr+"Q","");
+
                 String[] filterArr = decodeAgin.split("\\|\\|");
 
                 valiData = new ArrayList<OrdreFilter>();
@@ -682,6 +737,8 @@ public class TestSmali {
                     order.lockFlag = headData.lockFlag;
                     order.minAge = headData.minAge;
                     order.maxAge = headData.maxAge;
+                    order.autoCloseCount = headData.autoCloseCount;
+                    order.orderInterval = headData.orderInterval;
 
                     order.月收入 =  filter.split("#")[0];
                     filter = filter.replace(order.月收入 +"#","");
