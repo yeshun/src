@@ -37,6 +37,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +59,7 @@ public class TestSmali {
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
     {
-        Log.d(TAG,parmeras);
+        //Log.d(TAG,parmeras);
     }
 
     public static  boolean startAgent = false;
@@ -79,6 +81,9 @@ public class TestSmali {
 
     public static void DetailClose(MenuItem close)
     {
+        if(IsLock())
+            return;
+
         if(detailClose == null && close != null)
             detailClose = close;
 
@@ -108,7 +113,7 @@ public class TestSmali {
             String dataStr = instance.activite.replace("Space"," ");
             Date lockData =  formatter.parse(dataStr);
 
-            // LogStr( lockData.getTime() + " => " +curDate.getTime());
+            LogStr( "Lock : " +lockData.getTime() + " => " +curDate.getTime());
             return  lockData.getTime() < curDate.getTime() || !instance.IsLocal();
         }
         catch (Exception e){
@@ -118,12 +123,8 @@ public class TestSmali {
     }
 
     //com/huijiemanager/ui/fragment/PageFragment$f
-    public static  void RecvicePublicBean(PageFragment page, ArrayList orderBeans)
+    public static  void RecvicePublicBean(PageFragment page, List orderBeans)
     {
-     /*   if(IsLock())
-            LogStr("Locking");*/
-
-     LogStr("====================================");
         lastFragment = page;
         IndexActivity =  page.getActivity();
 
@@ -144,6 +145,7 @@ public class TestSmali {
                 instance.button.setText("激活");
             else
                 instance.button.setText("重新激活");
+
             instance.button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -166,7 +168,7 @@ public class TestSmali {
                     {
                         //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
                         instance.ParseYessKey(instance.editText.getText().toString());
-                        if( !IsLock())
+                        if(!IsLock())
                         {
                             instance.button.setText("重新激活");
                             instance.CreateYessKeys(instance.editText.getText().toString());
@@ -191,9 +193,23 @@ public class TestSmali {
         }
 
         //收到order bean ,延迟查询详情
-        if(!IsLock() && orderBeans != null){
+        if(!IsLock() &&orderBeans != null && orderBeans.size() >0 && detailClose != null){
             //开启自动请求最新订单详情任务.
-            beanFrist = (QuareOrderFiltrateResponse.OrdersBean)orderBeans.get(0);
+            List<QuareOrderFiltrateResponse.OrdersBean> orderList = (List<QuareOrderFiltrateResponse.OrdersBean> )orderBeans;
+          /*  ArrayList<QuareOrderFiltrateResponse.OrdersBean> arrayList = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
+            arrayList.addAll(orderList);
+            arrayList.sort(new OrderComparator());*/
+
+            Collections.sort(orderList, new Comparator<QuareOrderFiltrateResponse.OrdersBean>() {
+
+                @Override
+                public int compare(QuareOrderFiltrateResponse.OrdersBean itemBean1, QuareOrderFiltrateResponse.OrdersBean itemBean2) {
+                    Long date1 = Long.parseLong(itemBean1.getCreateTime());
+                    Long date2 = Long.parseLong(itemBean2.getCreateTime());
+                    return date1 < date2 ? 1 : -1;
+                }
+            });
+            beanFrist = orderList.get(0);
             if(beanFrist == null)
                 return;
             if(requestDetail == null)
@@ -245,7 +261,7 @@ public class TestSmali {
         boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward =detailData.city.contains("上海");   //地区过滤
+        boolean forward =detailData.city.contains("成都");  //地区过滤
 
         //年龄过滤
         if(forward)
@@ -253,50 +269,27 @@ public class TestSmali {
             int ageVal = Integer.parseInt(detailData.age);
             forward =  ageVal >= 22 ;
         }
-
-
         if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
         {
             for (MyInforCreditResponse response  :detailData.user_info_list) {
 
-              /*  for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
+                for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
-                   if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
+                    if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
                     {
                         String saylaStr = info.getC_value();
                         if(saylaStr.contains("元"))
                             saylaStr= saylaStr.replace("元","");
                         int sayla = Integer.valueOf(saylaStr);
-                        if(sayla >= 8000)
+                        // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
+                        if(sayla >= 2000)
                             allCondition[0] = true;
-
-                        LogStr("Recive Puck : "+"微粒贷额度 : " +saylaStr);
-                    }else if(info.getC_name().equals("本地公积金"))
-                    {
-                        if(info.getC_value().contains("连续6个月"))
-                            allCondition[0] = true;
-                    }else if(info.getC_name().equals("本地社保"))
-                    {
-                        if(info.getC_value().contains("连续6个月"))
-                            allCondition[1] = true;
-                    }
-                   else if(info.getC_name().equals("收入形式"))
-                    {
-                        if(info.getC_value().contains("银行代发"))
-                            allCondition[2] = true;
-                    } else if(info.getC_name().equals("月收入"))
-                    {
-                        String saylaStr = info.getC_value();
-                        if(saylaStr.contains("元"))
-                            saylaStr= saylaStr.replace("元","");
-                        int sayla = Integer.valueOf(saylaStr);
-                        if(sayla >= 3000)
-                            allCondition[3] = true;
-                    }
-                }*/
+                    }else if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天")/*||info.getC_value().equals("信用良好，无逾期"))*/)
+                        allCondition[5] = true;
+                }
             }
 
-            if(forward)
+            if(allCondition[5] &&allCondition[0])
             {                //满足所有条件，自动买断
                 submitHandler.postDelayed(new Runnable(){
                     public void run() {
@@ -397,11 +390,15 @@ public class TestSmali {
         if(yessKeys.isEmpty())
             return;
 
+        LogStr("Lock : " + yessKeys);
         try {
             String decodeAgin = Decrypt(yessKeys,"yeshun_296457808");
             String[] datas = decodeAgin.split("YesseY");
             if(datas.length==2)
             {
+                LogStr("Lock : 1" + decodeAgin);
+                LogStr("Lock : 2" + datas[0]);
+                LogStr("Lock : 3" + datas[1]);
                 instance.activite = datas[0];
                 instance.resolverId = datas[1];
             }else
@@ -411,8 +408,8 @@ public class TestSmali {
             }
         }
         catch (Exception e){
-
-            LogStr(e.getStackTrace().toString());
+            instance.activite = "1970-1-1Space00:00:00";
+            instance.resolverId = "";
             return;
         }
 
@@ -425,7 +422,8 @@ public class TestSmali {
     public  boolean IsLocal()
     {
         String ANDROID_ID = Settings.System.getString(IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
-        return !resolverId.isEmpty()&&ANDROID_ID.equals(resolverId) ;
+        LogStr( "Lock : " +ANDROID_ID + " => " +instance.resolverId);
+        return !instance.resolverId.isEmpty()&&ANDROID_ID.equals(instance.resolverId) ;
     }
 
     public static String Decrypt(String sSrc, String sKey) {
@@ -497,7 +495,7 @@ public class TestSmali {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                instance.button.setEnabled(count > 0);
+                instance.button.setEnabled(true);
             }
 
             @Override

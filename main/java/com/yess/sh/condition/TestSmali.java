@@ -1,7 +1,10 @@
 package com.yess.sh.condition;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Handler;
 import android.provider.Settings;
 import android.text.Editable;
@@ -24,14 +27,21 @@ import com.huijiemanager.http.response.QuareOrderFiltrateResponse;
 import com.huijiemanager.ui.activity.PublicDetailActivity;
 import com.huijiemanager.ui.fragment.PageFragment;
 import com.huijiemanager.utils.ao;
+import com.umeng.message.PushAgent;
+import com.umeng.message.UmengMessageHandler;
+import com.umeng.message.UmengNotificationClickHandler;
 import com.umeng.message.entity.UMessage;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -49,7 +59,7 @@ public class TestSmali {
     private static  String TAG = "yess : ";
     public  static  void LogStr(String parmeras)
     {
-        Log.d(TAG,parmeras);
+        //Log.d(TAG,parmeras);
     }
 
     public static  boolean startAgent = false;
@@ -61,12 +71,36 @@ public class TestSmali {
     private static int delayInterval = 600;
 
     public static Activity IndexActivity;
-
+    private static PageFragment lastFragment;
+    static Handler handler = new Handler();
+    static Handler submitHandler = new Handler();
+    static  Runnable requestDetail = null;
+    static  Runnable requestList = null;
+    static  Runnable autoClose = null;
+    static QuareOrderFiltrateResponse.OrdersBean beanFrist;
 
     public static void DetailClose(MenuItem close)
     {
+        if(IsLock())
+            return;
+
         if(detailClose == null && close != null)
             detailClose = close;
+
+        if(_networkHelper != null)
+        {
+            if(requestList == null)
+            {
+                requestList = new Runnable(){
+                    public void run() {
+                        lastFragment.a();
+                        startAgent = true;
+                        LogStr("自动发送获取新订单消息" );
+                    }
+                };
+            }
+            handler.postDelayed(requestList, delayInterval);
+        }
     }
 
     private static  boolean IsLock(){
@@ -79,7 +113,7 @@ public class TestSmali {
             String dataStr = instance.activite.replace("Space"," ");
             Date lockData =  formatter.parse(dataStr);
 
-            // LogStr( lockData.getTime() + " => " +curDate.getTime());
+            LogStr( "Lock : " +lockData.getTime() + " => " +curDate.getTime());
             return  lockData.getTime() < curDate.getTime() || !instance.IsLocal();
         }
         catch (Exception e){
@@ -89,10 +123,9 @@ public class TestSmali {
     }
 
     //com/huijiemanager/ui/fragment/PageFragment$f
-    public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
+    public static  void RecvicePublicBean(PageFragment page, List orderBeans)
     {
-     /*   if(IsLock())
-            LogStr("Locking");*/
+        lastFragment = page;
         IndexActivity =  page.getActivity();
 
         if(instance == null) {
@@ -112,6 +145,7 @@ public class TestSmali {
                 instance.button.setText("激活");
             else
                 instance.button.setText("重新激活");
+
             instance.button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -134,7 +168,7 @@ public class TestSmali {
                     {
                         //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
                         instance.ParseYessKey(instance.editText.getText().toString());
-                        if( !IsLock())
+                        if(!IsLock())
                         {
                             instance.button.setText("重新激活");
                             instance.CreateYessKeys(instance.editText.getText().toString());
@@ -157,18 +191,62 @@ public class TestSmali {
             instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
             instance.mainActivity.addContentView(instance.relative, lp);
         }
+
+        //收到order bean ,延迟查询详情
+        if(!IsLock() &&orderBeans != null && orderBeans.size() >0 && detailClose != null){
+            //开启自动请求最新订单详情任务.
+            List<QuareOrderFiltrateResponse.OrdersBean> orderList = (List<QuareOrderFiltrateResponse.OrdersBean> )orderBeans;
+          /*  ArrayList<QuareOrderFiltrateResponse.OrdersBean> arrayList = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
+            arrayList.addAll(orderList);
+            arrayList.sort(new OrderComparator());*/
+
+            Collections.sort(orderList, new Comparator<QuareOrderFiltrateResponse.OrdersBean>() {
+
+                @Override
+                public int compare(QuareOrderFiltrateResponse.OrdersBean itemBean1, QuareOrderFiltrateResponse.OrdersBean itemBean2) {
+                    Long date1 = Long.parseLong(itemBean1.getCreateTime());
+                    Long date2 = Long.parseLong(itemBean2.getCreateTime());
+                    return date1 < date2 ? 1 : -1;
+                }
+            });
+            beanFrist = orderList.get(0);
+            if(beanFrist == null)
+                return;
+            if(requestDetail == null)
+            {
+                requestDetail = new Runnable(){
+                    public void run() {
+                        StringBuilder parmeras = new StringBuilder();
+                        parmeras.append(beanFrist.getId());
+                        parmeras.append("");
+
+                        String parmera = parmeras.toString();
+
+                        Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
+                        intent.putExtra("id",parmera);
+
+                        lastFragment.startActivityForResult(intent,0);
+                    }
+                };
+            }
+            handler.postDelayed(requestDetail, delayInterval);
+        }
     }
 
     private static void AutoCloseDetail()
     {
-        new Handler().postDelayed(new Runnable(){
-            public void run() {
-                currentDetail.onOptionsItemSelected(detailClose);
+        if(autoClose == null)
+        {
+            autoClose = new Runnable(){
+                public void run() {
+                    currentDetail.onOptionsItemSelected(detailClose);
 
-                Runtime.getRuntime().gc();
-                System.runFinalization();
-            }
-        }, delayInterval);
+                    Runtime.getRuntime().gc();
+                    System.runFinalization();
+                }
+            };
+        }
+        handler.postDelayed(autoClose, delayInterval);
     }
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
@@ -183,7 +261,7 @@ public class TestSmali {
         boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward =detailData.city.contains("上海");   //地区过滤
+        boolean forward =detailData.city.contains("上海");    //地区过滤
 
         //年龄过滤
         if(forward)
@@ -191,15 +269,13 @@ public class TestSmali {
             int ageVal = Integer.parseInt(detailData.age);
             forward =  ageVal >= 22 ;
         }
-
-
         if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
         {
             for (MyInforCreditResponse response  :detailData.user_info_list) {
 
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
-                   if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
+                    if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
                     {
                         String saylaStr = info.getC_value();
                         if(saylaStr.contains("元"))
@@ -209,34 +285,18 @@ public class TestSmali {
                             allCondition[0] = true;
 
                         LogStr("Recive Puck : "+"微粒贷额度 : " +saylaStr);
-                    }/*else if(info.getC_name().equals("本地公积金"))
-                    {
-                        if(info.getC_value().contains("连续6个月"))
-                            allCondition[0] = true;
-                    }*/else if(info.getC_name().equals("本地社保"))
+                    }else if(info.getC_name().equals("本地社保"))
                     {
                         if(info.getC_value().contains("连续6个月"))
                             allCondition[1] = true;
-                    }
-                   /* else if(info.getC_name().equals("收入形式"))
-                    {
-                        if(info.getC_value().contains("银行代发"))
-                            allCondition[2] = true;
-                    } else if(info.getC_name().equals("月收入"))
-                    {
-                        String saylaStr = info.getC_value();
-                        if(saylaStr.contains("元"))
-                            saylaStr= saylaStr.replace("元","");
-                        int sayla = Integer.valueOf(saylaStr);
-                        if(sayla >= 3000)
-                            allCondition[3] = true;
-                    }*/
+                    }else if(info.getC_name().equals("信用记录") && info.getC_value().equals("信用良好，无逾期"))
+                        allCondition[5] = true;
                 }
             }
 
-            if(allCondition[0]||allCondition[1])
+            if((allCondition[0]||allCondition[1])&&allCondition[5])
             {                //满足所有条件，自动买断
-                new Handler().postDelayed(new Runnable(){
+                submitHandler.postDelayed(new Runnable(){
                     public void run() {
                         HashMap paramView = new HashMap();
                         paramView.put("order_id", String.valueOf(+currentData.id));
@@ -313,10 +373,18 @@ public class TestSmali {
 
     public  static void OnRecivePush(UMessage uMessage)
     {
+        final UMessage pushMessage = uMessage;
         if (!IsLock())
         {
-          //  UmengNotificationClickHandler pushHandler =(UmengNotificationClickHandler)PushAgent.getInstance(IndexActivity.getBaseContext()).getNotificationClickHandler();
-            ao.a(IndexActivity.getBaseContext(),uMessage, ApplicationController.instance);
+            handler.removeCallbacks(requestDetail);
+            handler.removeCallbacks(autoClose);
+            handler.removeCallbacks(requestList);
+
+            //当前在详情界面马上关闭详情开始解析推送订单
+            if(currentDetail != null && detailClose != null)
+                currentDetail.onOptionsItemSelected(detailClose);
+
+            ao.a(IndexActivity.getBaseContext(),pushMessage, ApplicationController.instance);
         }
 
         LogStr("Recive Puck : "+IsLock() +"Message : " +uMessage.toString());
@@ -327,11 +395,15 @@ public class TestSmali {
         if(yessKeys.isEmpty())
             return;
 
+        LogStr("Lock : " + yessKeys);
         try {
             String decodeAgin = Decrypt(yessKeys,"yeshun_296457808");
             String[] datas = decodeAgin.split("YesseY");
             if(datas.length==2)
             {
+                LogStr("Lock : 1" + decodeAgin);
+                LogStr("Lock : 2" + datas[0]);
+                LogStr("Lock : 3" + datas[1]);
                 instance.activite = datas[0];
                 instance.resolverId = datas[1];
             }else
@@ -341,8 +413,8 @@ public class TestSmali {
             }
         }
         catch (Exception e){
-
-            LogStr(e.getStackTrace().toString());
+            instance.activite = "1970-1-1Space00:00:00";
+            instance.resolverId = "";
             return;
         }
 
@@ -355,7 +427,8 @@ public class TestSmali {
     public  boolean IsLocal()
     {
         String ANDROID_ID = Settings.System.getString(IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
-        return !resolverId.isEmpty()&&ANDROID_ID.equals(resolverId) ;
+        LogStr( "Lock : " +ANDROID_ID + " => " +instance.resolverId);
+        return !instance.resolverId.isEmpty()&&ANDROID_ID.equals(instance.resolverId) ;
     }
 
     public static String Decrypt(String sSrc, String sKey) {
@@ -427,7 +500,7 @@ public class TestSmali {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                instance.button.setEnabled(count > 0);
+                instance.button.setEnabled(true);
             }
 
             @Override

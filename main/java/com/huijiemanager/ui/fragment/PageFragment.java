@@ -12,6 +12,7 @@ import com.yess.TestSmali;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by yehun on 2018/4/15.
@@ -41,7 +42,10 @@ public class PageFragment extends BaseFragment {
         String var4 = var1.a();
         Iterator var2 = this.t.iterator();
 
-        TestSmali.RecvicePublicBean(this,this.t);
+        PageFragment a = this;
+        List b = getList();
+        List c = b;
+        TestSmali.RecvicePublicBean(a,c);
 
         while(var2.hasNext()) {
             Object var3 = var2.next();
@@ -57,4 +61,7 @@ public class PageFragment extends BaseFragment {
 
     }
 
+    private List getList(){
+        return null;
+    }
 }

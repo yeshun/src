@@ -26,7 +26,7 @@
     .param p1, "this$0"    # Lcom/huijiemanager/ui/fragment/PageFragment;
 
     .prologue
-    .line 34
+    .line 35
     iput-object p1, p0, Lcom/huijiemanager/ui/fragment/PageFragment$f;->this$0:Lcom/huijiemanager/ui/fragment/PageFragment;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
