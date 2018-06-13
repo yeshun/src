@@ -69,12 +69,33 @@ public class TestSmali {
     private static int delayInterval = 600;
 
     public static Activity IndexActivity;
-
+    private static PageFragment lastFragment;
+    static Handler handler = new Handler();
+    static Handler submitHandler = new Handler();
+    static  Runnable requestDetail = null;
+    static  Runnable requestList = null;
+    static  Runnable autoClose = null;
+    static QuareOrderFiltrateResponse.OrdersBean beanFrist;
 
     public static void DetailClose(MenuItem close)
     {
         if(detailClose == null && close != null)
             detailClose = close;
+
+        if(_networkHelper != null)
+        {
+            if(requestList == null)
+            {
+                requestList = new Runnable(){
+                    public void run() {
+                        lastFragment.a();
+                        startAgent = true;
+                        LogStr("自动发送获取新订单消息" );
+                    }
+                };
+            }
+            handler.postDelayed(requestList, delayInterval);
+        }
     }
 
     private static  boolean IsLock(){
@@ -97,10 +118,13 @@ public class TestSmali {
     }
 
     //com/huijiemanager/ui/fragment/PageFragment$f
-    public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
+    public static  void RecvicePublicBean(PageFragment page, ArrayList orderBeans)
     {
      /*   if(IsLock())
             LogStr("Locking");*/
+
+     LogStr("====================================");
+        lastFragment = page;
         IndexActivity =  page.getActivity();
 
         if(instance == null) {
@@ -165,18 +189,48 @@ public class TestSmali {
             instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
             instance.mainActivity.addContentView(instance.relative, lp);
         }
+
+        //收到order bean ,延迟查询详情
+        if(!IsLock() && orderBeans != null){
+            //开启自动请求最新订单详情任务.
+            beanFrist = (QuareOrderFiltrateResponse.OrdersBean)orderBeans.get(0);
+            if(beanFrist == null)
+                return;
+            if(requestDetail == null)
+            {
+                requestDetail = new Runnable(){
+                    public void run() {
+                        StringBuilder parmeras = new StringBuilder();
+                        parmeras.append(beanFrist.getId());
+                        parmeras.append("");
+
+                        String parmera = parmeras.toString();
+
+                        Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
+                        intent.putExtra("id",parmera);
+
+                        lastFragment.startActivityForResult(intent,0);
+                    }
+                };
+            }
+            handler.postDelayed(requestDetail, delayInterval);
+        }
     }
 
     private static void AutoCloseDetail()
     {
-        new Handler().postDelayed(new Runnable(){
-            public void run() {
-                currentDetail.onOptionsItemSelected(detailClose);
+        if(autoClose == null)
+        {
+            autoClose = new Runnable(){
+                public void run() {
+                    currentDetail.onOptionsItemSelected(detailClose);
 
-                Runtime.getRuntime().gc();
-                System.runFinalization();
-            }
-        }, delayInterval);
+                    Runtime.getRuntime().gc();
+                    System.runFinalization();
+                }
+            };
+        }
+        handler.postDelayed(autoClose, delayInterval);
     }
 
     public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
@@ -244,7 +298,7 @@ public class TestSmali {
 
             if(forward)
             {                //满足所有条件，自动买断
-                new Handler().postDelayed(new Runnable(){
+                submitHandler.postDelayed(new Runnable(){
                     public void run() {
                         HashMap paramView = new HashMap();
                         paramView.put("order_id", String.valueOf(+currentData.id));
@@ -321,10 +375,18 @@ public class TestSmali {
 
     public  static void OnRecivePush(UMessage uMessage)
     {
+        final UMessage pushMessage = uMessage;
         if (!IsLock())
         {
-          //  UmengNotificationClickHandler pushHandler =(UmengNotificationClickHandler)PushAgent.getInstance(IndexActivity.getBaseContext()).getNotificationClickHandler();
-            ao.a(IndexActivity.getBaseContext(),uMessage, ApplicationController.instance);
+            handler.removeCallbacks(requestDetail);
+            handler.removeCallbacks(autoClose);
+            handler.removeCallbacks(requestList);
+
+            //当前在详情界面马上关闭详情开始解析推送订单
+            if(currentDetail != null && detailClose != null)
+                currentDetail.onOptionsItemSelected(detailClose);
+
+            ao.a(IndexActivity.getBaseContext(),pushMessage, ApplicationController.instance);
         }
 
         LogStr("Recive Puck : "+IsLock() +"Message : " +uMessage.toString());
