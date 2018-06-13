@@ -136,7 +136,7 @@ public class TestSmali {
                         if(instance.editText == null)
                             instance.InitEditText();
                         instance.editText.setText(instance.CheckYessKeys(instance.mainActivity));
-                        //instance.editText.setEnabled(false);
+                        instance.button.setText("保存");
                     }
                     else if(instance.button.getText().equals("保存"))
                     {
