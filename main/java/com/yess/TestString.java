@@ -1,32 +1,55 @@
 package com.yess;
-import android.util.Base64;
+import android.os.Build;
+import android.provider.Settings;
+import android.support.annotation.RequiresApi;
+
+import junit.framework.Test;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Created by yehun on 2018/4/17.
  */
 public class TestString {
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public static void main(String[] args){
 
-    String content = "上海M" +
-            "2018-5-23Space00:00:00N" +
-            "22L50O" +
-            "3000#" +
-            "银行转账A" +
+    String content = "南京M" +
+            "2018-6-30Space00:00:00N" +
+            "23L53O" +
+            "无#" +
+            "无A" +
             "连续6个月B" +
+            "无C" +
+            "无D" +
+            "无E" +
+            "无F" +
+            "无G" +
+            "1年内逾期少于3次且少于90天;信用良,无逾期H" +
+            "无I" +
+            "无J" +
+            "无K" +
+            "无" +
+            "||" +
+            "无#" +
+            "无A" +
+            "无B" +
             "连续6个月C" +
-            "6个月以上D" +
-            "上海E" +
-            "上海F" +
-            "8000G" +
-            "1年内逾期少于3次且少于90天H" +
-            "10000I" +
-            "有房产,可接受抵押J" +
-            "有车产,不接受抵押K" +
-            "30万" +
+            "无D" +
+            "无E" +
+            "无F" +
+            "无G" +
+            "1年内逾期少于3次且少于90天;信用良,无逾期H" +
+            "无I" +
+            "无J" +
+            "无K" +
+            "无" +
             "||" +
             "无#" +
             "无A" +
@@ -36,8 +59,8 @@ public class TestString {
             "无E" +
             "无F" +
             "无G" +
-            "无H" +
-            "无I" +
+            "1年内逾期少于3次且少于90天;信用良,无逾期H" +
+            "10000I" +
             "无J" +
             "无K" +
             "无" ;
@@ -80,6 +103,39 @@ public class TestString {
             System.out.println(filter.ValiCount());*/
         } catch ( Exception e){
             e.printStackTrace();
+        }
+
+
+        String data = "2018-6-30Space00:00:00";
+      //  String ANDROID_ID = Settings.System.getString(TestSmali.IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
+        String sKey = "yeshun_296457808";
+        System.out.print(Encrypt(data,sKey));
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static String Encrypt(String sSrc, String sKey) {
+        try{
+            if (sKey == null) {
+                System.out.print("Key为空null");
+                return null;
+            }
+            // 判断Key是否为16位
+            if (sKey.length() != 16) {
+                System.out.print("Key长度不是16位");
+                return null;
+            }
+            byte[] raw = sKey.getBytes("utf-8");
+            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");//"算法/模式/补码方式"
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+            byte[] encrypted = cipher.doFinal(sSrc.getBytes("utf-8"));
+
+
+            return Base64.getEncoder().encodeToString(encrypted);//此处使用BASE64做转码功能，同时能起到2次加密的作用。
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
         }
     }
 }

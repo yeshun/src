@@ -2,14 +2,15 @@ package com.yess;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Handler;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Display;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,38 +18,38 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 
+import com.huijiemanager.app.ApplicationController;
 import com.huijiemanager.base.b;
 import com.huijiemanager.http.NetworkHelper;
 import com.huijiemanager.http.response.MyInforCreditResponse;
 import com.huijiemanager.http.response.PublicDetailResponse;
 import com.huijiemanager.http.response.QuareOrderFiltrateResponse;
-import com.huijiemanager.killSelfService;
 import com.huijiemanager.ui.activity.PublicDetailActivity;
 import com.huijiemanager.ui.fragment.PageFragment;
+import com.huijiemanager.utils.ao;
+import com.umeng.message.PushAgent;
+import com.umeng.message.UmengMessageHandler;
+import com.umeng.message.UmengNotificationClickHandler;
+import com.umeng.message.entity.UMessage;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Created by yehun on 2018/4/14.
  */
 public class TestSmali {
 
-    public  static  TestSmali getInstance(){
-        if(instance == null)
-            instance = new TestSmali();
-
-        return instance;
-    }
-
-    public static  TestSmali instance;
+    public static TestSmali instance;
     private Button button;
     private EditText editText;
     public Activity mainActivity;
@@ -65,116 +66,29 @@ public class TestSmali {
 
     private static MenuItem detailClose;
 
-    private  static  ArrayList<Integer> rededOrders;
-    public static ArrayList<QuareOrderFiltrateResponse.OrdersBean> allOrder = new ArrayList<QuareOrderFiltrateResponse.OrdersBean>();
-    public static HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment> allPage = new HashMap<QuareOrderFiltrateResponse.OrdersBean,PageFragment>();
-    // private static int queryCounter = 5;
+    private static int delayInterval = 600;
 
-    private static PageFragment lastFragment;
+    public static Activity IndexActivity;
 
-    private List<OrdreFilter> filters;
-
-    //  private static ScheduledThreadPoolExecutor pool;
-
-    private static int delayInterval = 60;
-
-    private int orderCount;
-
-    private static int autoCount =10;
 
     public static void DetailClose(MenuItem close)
     {
-
         if(detailClose == null && close != null)
             detailClose = close;
-
-        boolean autoRequest = false;
-
-        //查找当前public bean里面没有查询过的订单
-        QuareOrderFiltrateResponse.OrdersBean beanUnRed = null;
-        for (QuareOrderFiltrateResponse.OrdersBean bean :allOrder) {
-            if (!rededOrders.contains(bean.getId()))
-            {
-                beanUnRed = bean;
-                break;
-            }
-        }
-
-        if(beanUnRed != null && instance.button.getText().equals("暂停"))
-        {
-            lastFragment = allPage.get(beanUnRed);
-            if(lastFragment != null )
-            {
-                rededOrders.add(beanUnRed.getId());
-                StringBuilder parmeras = new StringBuilder();
-                parmeras.append(beanUnRed.getId());
-                parmeras.append("");
-
-                String parmera = parmeras.toString();
-
-                Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
-                intent.putExtra("id",parmera);
-
-                lastFragment.startActivityForResult(intent,0);
-
-                allOrder.remove(beanUnRed);
-                allPage.remove(beanUnRed);
-                // queryCounter --;
-                LogStr("自动检查下一个订单 ：" +beanUnRed.getUserDesc() +" size : " +allOrder.size());
-            }else
-                autoRequest = true;
-
-        }else
-            autoRequest = true;
-
-        if(autoRequest && instance.button.getText().equals("暂停"))
-        {
-            if(instance.orderCount > autoCount)
-            {
-                LogStr("AUTO CLOSE");
-                Context context = instance.mainActivity.getBaseContext();
-                Intent intent1=new Intent(context,killSelfService.class);
-                intent1.putExtra("PackageName",context.getPackageName());
-               // intent1.putExtra("Delayed",2000);
-                context.startService(intent1);
-
-                allOrder.clear();
-                allPage.clear();
-                rededOrders.clear();
-                instance.orderCount = 0;
-                instance.mainActivity.finish();
-                startAgent = true;
-                instance = null;
-            }else{
-                if(instance.button.getText().equals("暂停"))
-                    RequestOrderList();
-            }
-        }
     }
 
-    public static void RequestOrderList()
-    {
-        if(_networkHelper != null && requestMap != null)
-        {
-            new Handler().postDelayed(new Runnable(){
-                public void run() {
-                    lastFragment.a();
-                    allOrder.clear();
-                    allPage.clear();
-                    startAgent = true;
-                    LogStr("自动发送获取新订单消息" );
-                }
-            }, delayInterval);
-        }
-    }
-
-    private static  boolean IsLock(String  lockStr){
+    private static  boolean IsLock(){
         try {
+            if(instance == null)
+                return  true;
+
             SimpleDateFormat formatter   =   new   SimpleDateFormat   ("yyyy-MM-dd HH:mm:ss");
             Date curDate =  new Date(System.currentTimeMillis());
-            Date lockData =  formatter.parse(lockStr);
-            Date updateData =  formatter.parse("2018-8-30 00:00:00");
-            return  lockData.getTime() < curDate.getTime() || updateData.getTime() < curDate.getTime();
+            String dataStr = instance.activite.replace("Space"," ");
+            Date lockData =  formatter.parse(dataStr);
+
+            // LogStr( lockData.getTime() + " => " +curDate.getTime());
+            return  lockData.getTime() < curDate.getTime() || !instance.IsLocal();
         }
         catch (Exception e){
 
@@ -185,173 +99,301 @@ public class TestSmali {
     //com/huijiemanager/ui/fragment/PageFragment$f
     public static  void RecvicePublicBean(PageFragment page, QuareOrderFiltrateResponse.OrdersBean bean)
     {
-       // LogStr("startAgent : " +startAgent);
-        allOrder.add(bean);
-        allPage.put(bean,page);
-        try {
-            if(instance == null) {
-                instance = new TestSmali();
-                instance.mainActivity = page.getActivity();
-                rededOrders = new ArrayList<Integer>();
+     /*   if(IsLock())
+            LogStr("Locking");*/
+        IndexActivity =  page.getActivity();
 
-                View view = page.getView().getRootView();
-                instance.relative = new RelativeLayout(view.getContext());
-                instance.relative.setBackgroundColor(Color.YELLOW);
-                instance.relative.setY(200);
+        if(instance == null) {
+            instance = new TestSmali();
+            instance.mainActivity = page.getActivity();
 
-                instance.button = new Button(view.getContext());
+            View view = page.getView().getRootView();
+            instance.relative = new RelativeLayout(view.getContext());
+            instance.relative.setBackgroundColor(Color.YELLOW);
+            instance.relative.setY(200);
 
-                instance.filters = instance.ParseYessKey(instance.CheckYessKeys(instance.mainActivity));
-                if(instance.filters == null)
-                    instance.button.setText("激活");
-                else
-                    instance.button.setText("开始");
-                instance.button.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if (instance.button.getText().equals("激活")) {
-                            instance.button.setEnabled(false);
-                            if(instance.editText == null)
-                                instance.InitEditText();
-                            else
-                                instance.editText.setEnabled(true);
+            instance.button = new Button(view.getContext());
 
-                            instance.button.setText("保存");
-                        }
-                        else if (instance.button.getText().equals("开始")) {
+            String conentStr = instance.CheckYessKeys(instance.mainActivity);
+            instance.ParseYessKey(conentStr);
+            if(IsLock())
+                instance.button.setText("激活");
+            else
+                instance.button.setText("重新激活");
+            instance.button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (instance.button.getText().equals("激活")) {
+                        if(instance.editText == null)
+                            instance.InitEditText();
+                        else
+                            instance.editText.setEnabled(true);
 
-                            //激活机器人自动接单流程
-                            if(instance.editText == null)
-                                instance.InitEditText();
-                            instance.editText.setText(instance.CheckYessKeys(instance.mainActivity));
-                            instance.editText.setEnabled(false);
-
-                            instance.button.setText("暂停");
-                            autoCheck = true;
-
-                            instance.filters = instance.ParseYessKey(instance.editText.getText().toString());
-                            autoCount = instance.filters.get(0).autoCloseCount;
-                            delayInterval = instance.filters.get(0).orderInterval;
-
-                            QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
-                            lastFragment = allPage.get(orderBean);
-                            if(!rededOrders.contains(orderBean.getId()))
-                                rededOrders.add(orderBean.getId());
-
-                            startAgent = false;
-                            StringBuilder parmeras = new StringBuilder();
-                            parmeras.append(orderBean.getId());
-                            parmeras.append("");
-
-                            String parmera = parmeras.toString();
-
-                            Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
-                            intent.putExtra("id",parmera);
-
-                            lastFragment.startActivityForResult(intent,0);
-
-                            LogStr("开始检查第一个订单 ：" +orderBean.getUserDesc());
-                        }
-                        else if(instance.button.getText().equals("保存"))
-                        {
-                            //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
-                            List<OrdreFilter> readDatas = instance.ParseYessKey(instance.editText.getText().toString());
-                            if(  readDatas != null)
-                            {
-                                instance.button.setText("开始");
-                                instance.CreateYessKeys(instance.editText.getText().toString());
-                            }else
-                            {
-                                //失败 重置 InitEditText
-                                instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
-                                instance.button.setEnabled(false);
-                            }
-                        }
-                        else if(instance.button.getText().equals("暂停"))
-                        {
-                            autoCheck = false;
-                            instance.button.setText("开始");
-                            if(instance.editText != null)
-                                instance.editText.setEnabled(true);
-                        }
-
+                        instance.button.setText("保存");
+                        instance.button.setEnabled(false);
                     }
-                });
-                instance.relative.addView(instance.button);
-                // ����RelativeLayout���ֵĿ��
-                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-                lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-                //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
-                instance.mainActivity.addContentView(instance.relative, lp);
-            }
-            else if(instance.filters != null && rededOrders != null && startAgent && autoCheck){
-                startAgent = false;
-                QuareOrderFiltrateResponse.OrdersBean orderBean = allOrder.get(0);
-                lastFragment = allPage.get(orderBean);
-                if(!rededOrders.contains(orderBean.getId()))
-                    rededOrders.add(orderBean.getId());
-
-                instance.button.setText("暂停");
-                StringBuilder parmeras = new StringBuilder();
-                parmeras.append(orderBean.getId());
-                parmeras.append("");
-
-                String parmera = parmeras.toString();
-
-                Intent intent = new Intent(lastFragment.getContext(),PublicDetailActivity.class);
-                intent.putExtra("id",parmera);
-
-                lastFragment.startActivityForResult(intent,0);
-
-                LogStr("重启后自动检查第一个 ：" +orderBean.getUserDesc());
-            }
-        }catch (Exception e){
+                    else if (instance.button.getText().equals("重新激活")) {
+                        if(instance.editText == null)
+                            instance.InitEditText();
+                        instance.editText.setText(instance.CheckYessKeys(instance.mainActivity));
+                        //instance.editText.setEnabled(false);
+                    }
+                    else if(instance.button.getText().equals("保存"))
+                    {
+                        //解析验证安全码。成功则生成 CreateYessKeys 授权文件。
+                        instance.ParseYessKey(instance.editText.getText().toString());
+                        if( !IsLock())
+                        {
+                            instance.button.setText("重新激活");
+                            instance.CreateYessKeys(instance.editText.getText().toString());
+                        }else
+                        {
+                            //失败 重置 InitEditText
+                            String ANDROID_ID = Settings.System.getString(IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
+                            instance.editText.setText("本机设备码: \r\n" + ANDROID_ID);
+                            instance.button.setText("激活");
+                        }
+                    }
+                }
+            });
+            instance.relative.addView(instance.button);
+            // ����RelativeLayout���ֵĿ��
+            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+            lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+            //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            instance.button.setLayoutParams(lp);   ////���ð�ť�Ĳ�������
+            instance.mainActivity.addContentView(instance.relative, lp);
         }
     }
 
-    private void InitEditText()
+    private static void AutoCloseDetail()
     {
-        instance.editText =new EditText(instance.button.getContext());
-        instance.editText.setText("            输入激活码....没有激活码联系开发人员索取 \r\n");
-        instance.editText.setWidth(800);
-        instance.editText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // instance.button.setText("保存");
-            }
+        new Handler().postDelayed(new Runnable(){
+            public void run() {
+                currentDetail.onOptionsItemSelected(detailClose);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-       /*         if(!instance.button.getText().equals("保存"))
-                    instance.button.setText("保存");*/
-                instance.button.setEnabled(count > 0);
+                Runtime.getRuntime().gc();
+                System.runFinalization();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
-        });
-        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-        //lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        instance.editText.setLayoutParams(lp);
-        instance.editText.setX(100);
-        instance.relative.addView( instance.editText,lp);
-        instance.relative.refreshDrawableState();
+        }, delayInterval);
     }
 
-    private void CreateYessKeys(String contents)
+    public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
     {
+        if(IsLock())
+            return;
+
+        currentData = detailData;
+
+        currentDetail = detailActivity;
+
+        boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
+        //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
+
+        boolean forward =detailData.city.contains("上海");   //地区过滤
+
+        //年龄过滤
+        if(forward)
+        {
+            int ageVal = Integer.parseInt(detailData.age);
+            forward =  ageVal >= 22 ;
+        }
+
+
+        if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
+        {
+            for (MyInforCreditResponse response  :detailData.user_info_list) {
+
+              /*  for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
+
+                   if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
+                    {
+                        String saylaStr = info.getC_value();
+                        if(saylaStr.contains("元"))
+                            saylaStr= saylaStr.replace("元","");
+                        int sayla = Integer.valueOf(saylaStr);
+                        if(sayla >= 8000)
+                            allCondition[0] = true;
+
+                        LogStr("Recive Puck : "+"微粒贷额度 : " +saylaStr);
+                    }else if(info.getC_name().equals("本地公积金"))
+                    {
+                        if(info.getC_value().contains("连续6个月"))
+                            allCondition[0] = true;
+                    }else if(info.getC_name().equals("本地社保"))
+                    {
+                        if(info.getC_value().contains("连续6个月"))
+                            allCondition[1] = true;
+                    }
+                   else if(info.getC_name().equals("收入形式"))
+                    {
+                        if(info.getC_value().contains("银行代发"))
+                            allCondition[2] = true;
+                    } else if(info.getC_name().equals("月收入"))
+                    {
+                        String saylaStr = info.getC_value();
+                        if(saylaStr.contains("元"))
+                            saylaStr= saylaStr.replace("元","");
+                        int sayla = Integer.valueOf(saylaStr);
+                        if(sayla >= 3000)
+                            allCondition[3] = true;
+                    }
+                }*/
+            }
+
+            if(forward)
+            {                //满足所有条件，自动买断
+                new Handler().postDelayed(new Runnable(){
+                    public void run() {
+                        HashMap paramView = new HashMap();
+                        paramView.put("order_id", String.valueOf(+currentData.id));
+                        paramView.put("click", "选择买断抢单");
+                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+
+                        paramView.put("order_id", String.valueOf(currentData.id));
+                        paramView.put("click", "立即抢单");
+                        com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
+                        currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
+                    }
+                }, 1);
+            }  else
+            {
+                if(detailClose == null || currentDetail == null)
+                    return;
+
+                AutoCloseDetail();
+            }
+        }
+        else
+        {
+            if(detailClose == null || currentDetail == null)
+                return;
+
+            AutoCloseDetail();
+        }
+
+    }
+
+    private static NetworkHelper<b> _networkHelper = null;
+    public static  void SetNetworkHelper(NetworkHelper<b> paramNetworkHelper, HashMap localHashMap)
+    {
+        _networkHelper = paramNetworkHelper;
+    }
+
+    private static PublicDetailActivity currentDetail;
+    private  static  PublicDetailResponse currentData;
+
+    public  static void SetDetail20(int parmera)
+    {
+        LogStr((currentDetail == null)+"");
+        //  private void a(int paramInt)
+        HashMap localHashMap = new HashMap();
+        localHashMap.put("default", Boolean.valueOf(currentDetail.aX));
+        localHashMap.put("order_price", currentDetail.aY);
+        com.huijiemanager.utils.k.a("xdj_discount_coupon", localHashMap);
+        currentDetail.I = Integer.valueOf(parmera);
+
+        //  private void b(int paramInt) ->  private void c(int paramInt)
+        HashMap parmeraHashMap = new HashMap();
+        parmeraHashMap.put("coupon_id", currentDetail.B);
+        parmeraHashMap.put("method", "独享");
+        parmeraHashMap.put("coupon_usable", Boolean.valueOf(false));
+        com.huijiemanager.utils.k.a("xdj_yhq_use", parmeraHashMap);
+
+
+        currentDetail.ac.sendBuyLoanOrderRequest(_networkHelper, currentDetail, currentDetail.d.id.longValue(), 1,
+                currentDetail.d.operationActivityId, currentDetail.B);
+
+        LogStr("发送确认抢单消息");
+
+        if(detailClose != null || currentDetail != null)
+            AutoCloseDetail();
+    }
+
+    public  static void SuccessClose(PublicDetailActivity detailActivitys)
+    {
+        if(detailClose == null || currentDetail == null)
+            return;
+
+        AutoCloseDetail();
+    }
+
+    public  static void OnRecivePush(UMessage uMessage)
+    {
+        if (!IsLock())
+        {
+          //  UmengNotificationClickHandler pushHandler =(UmengNotificationClickHandler)PushAgent.getInstance(IndexActivity.getBaseContext()).getNotificationClickHandler();
+            ao.a(IndexActivity.getBaseContext(),uMessage, ApplicationController.instance);
+        }
+
+        LogStr("Recive Puck : "+IsLock() +"Message : " +uMessage.toString());
+    }
+
+    public void ParseYessKey(String yessKeys)
+    {
+        if(yessKeys.isEmpty())
+            return;
+
         try {
-            File yessKeys = new File( instance.mainActivity.getFilesDir(), "YessKeys.yes");
-            yessKeys.createNewFile();
-            FileOutputStream os = new FileOutputStream(yessKeys);
-            os.write(contents.getBytes());
-            os.close();
-        }catch (Exception e){
+            String decodeAgin = Decrypt(yessKeys,"yeshun_296457808");
+            String[] datas = decodeAgin.split("YesseY");
+            if(datas.length==2)
+            {
+                instance.activite = datas[0];
+                instance.resolverId = datas[1];
+            }else
+            {
+                instance.activite = "1970-1-1Space00:00:00";
+                instance.resolverId = "";
+            }
+        }
+        catch (Exception e){
+
+            LogStr(e.getStackTrace().toString());
+            return;
+        }
+
+        return;
+    }
+
+    private String activite;
+    private  String resolverId;
+
+    public  boolean IsLocal()
+    {
+        String ANDROID_ID = Settings.System.getString(IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
+        return !resolverId.isEmpty()&&ANDROID_ID.equals(resolverId) ;
+    }
+
+    public static String Decrypt(String sSrc, String sKey) {
+        try {
+            // 判断Key是否正确
+            if (sKey == null) {
+                System.out.print("Key为空null");
+                return null;
+            }
+            // 判断Key是否为16位
+            if (sKey.length() != 16) {
+                System.out.print("Key长度不是16位");
+                return null;
+            }
+            byte[] raw = sKey.getBytes("utf-8");
+            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec);
+            byte[] encrypted1 = android.util.Base64.decode(sSrc, android.util.Base64.NO_WRAP);//先用base64解密
+            try {
+                byte[] original = cipher.doFinal(encrypted1);
+                String originalString = new String(original,"utf-8");
+                return originalString;
+            } catch (Exception e) {
+                System.out.println(e.toString());
+                return null;
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+            return null;
         }
     }
 
@@ -379,537 +421,45 @@ public class TestSmali {
         }
     }
 
-    private static void AutoCloseDetail()
+    private void InitEditText()
     {
-        if(detailClose == null || currentDetail == null)
-            return;
-
-        new Handler().postDelayed(new Runnable(){
-            public void run() {
-                currentDetail.onOptionsItemSelected(detailClose);
-
-                Runtime.getRuntime().gc();
-                System.runFinalization();
+        String ANDROID_ID = Settings.System.getString(IndexActivity.getContentResolver(), Settings.System.ANDROID_ID);
+        instance.editText =new EditText(instance.button.getContext());
+        instance.editText.setText("本机设备码: \r\n" + ANDROID_ID);
+        Display display = IndexActivity.getWindowManager().getDefaultDisplay();
+        instance.editText.setWidth(display.getWidth() - 100);
+        instance.editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
-        }, delayInterval);
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                instance.button.setEnabled(count > 0);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+        instance.editText.setLayoutParams(lp);
+        instance.editText.setX(100);
+        instance.relative.addView( instance.editText,lp);
+        instance.relative.refreshDrawableState();
     }
 
-    public  static void RecviceDetailBean(PublicDetailResponse detailData,PublicDetailActivity detailActivity)
+    private void CreateYessKeys(String contents)
     {
-        instance.orderCount++;
-        currentData = detailData;
-        currentDetail = detailActivity;
-
-        boolean bSubmit = false;
-        if(instance.filters == null)
-            return;
-
-        for (OrdreFilter filter : instance.filters)
-        {
-            if(bSubmit)
-                break;
-
-            boolean bCity = detailData.city.contains(filter.cityFlag);
-            int ageVal = Integer.parseInt(detailData.age);
-            boolean bAge = ageVal <= filter.maxAge && ageVal >= filter.minAge ;
-            boolean canMonopoly = detailData.can_collect.equals("1") && detailData.can_monopoly;
-            boolean bLock = IsLock(filter.lockFlag);
-            if(bLock)
-            {
-                instance.CreateYessKeys("服务到期，请联系管理员续费");
-                instance.button.setText("激活");
-            }
-
-            if(!bCity ||!bAge ||!canMonopoly||bLock)
-            {
-                bSubmit = false;
-                break;
-            }
-
-            int validata = filter.ValiCount();
-            if(validata == 0) {
-                bSubmit = true;
-                break;
-            }
-            else{
-                List<Boolean> allCondition = new ArrayList<Boolean>();
-
-                for (MyInforCreditResponse response  :detailData.user_info_list) {
-
-                    for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
-
-                        if (!filter.月收入.contains("无") &&info.getC_name().equals("月收入"))
-                        {
-                            String 收入字符 = info.getC_value().replace("元","");
-                            int 收入 =Integer.parseInt(收入字符);
-                            int 目标收入 =Integer.parseInt(filter.月收入);
-                            if (收入 >= 目标收入)
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.收入形式.contains("无") &&info.getC_name().equals("收入形式"))
-                        {
-                            if (filter.收入形式.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-
-                        if (!filter.本地社保.contains("无") &&info.getC_name().equals("本地社保"))
-                        {
-                            if (filter.本地社保.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.本地公积金.contains("无") &&info.getC_name().equals("本地公积金"))
-                        {
-                            if (filter.本地公积金.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.当前单位工龄.contains("无") &&info.getC_name().equals("当前单位工龄"))
-                        {
-                            if (filter.当前单位工龄.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.手机归属地.contains("无") &&info.getC_name().equals("手机归属地"))
-                        {
-                            if (filter.手机归属地.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.户籍所在地.contains("无") &&info.getC_name().equals("户籍所在地"))
-                        {
-                            if (filter.户籍所在地.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.信用卡额度.contains("无") &&info.getC_name().equals("信用卡额度"))
-                        {
-                            String 收入字符 = info.getC_value().replace("元","");
-                            int 收入 =Integer.parseInt(收入字符);
-                            int 目标收入 =Integer.parseInt(filter.信用卡额度);
-                            if (收入 >= 目标收入)
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.信用记录.contains("无") &&info.getC_name().equals("信用记录"))
-                        {
-                            if (filter.信用记录.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.微粒贷额度.equals("无") &&(info.getC_name().equals("微粒贷额度") || info.getC_name().equals("微粒贷总额度")))
-                        {
-                            String 收入字符 = info.getC_value().replace("元","");
-                            int 收入 =Integer.parseInt(收入字符);
-                            int 目标收入 =Integer.parseInt(filter.微粒贷额度);
-                          //  LogStr("目标收入 : " +目标收入 + " 收入 : " +收入);
-                            if (收入 >= 目标收入)
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.名下房产.contains("无") &&info.getC_name().equals("名下房产"))
-                        {
-                            if (filter.名下房产.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.名下车产.contains("无") &&info.getC_name().equals("名下车产"))
-                        {
-                            if (filter.名下车产.contains(info.getC_value()))
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-
-                        if (!filter.保单价值.contains("无") &&info.getC_name().equals("保单价值"))
-                        {
-                            String 收入字符 = info.getC_value().replace("万","");
-                            int 收入 =Integer.parseInt(收入字符);
-                            int 目标收入 =Integer.parseInt(filter.保单价值.replace("万",""));
-                            if (收入 >= 目标收入)
-                                allCondition.add(true);
-                            else
-                                allCondition.add(false);
-                        }
-                    }
-                }
-
-                if(allCondition.size() == validata && !allCondition.contains(false))
-                {
-                   // LogStr("==============>"+validata);
-                    bSubmit = true;
-                    break;
-                }else
-                    continue;
-            }
-        }
-
-        if(bSubmit)
-            instance.SubmitBuyRequest();
-        else
-            AutoCloseDetail();
-        }
-
-        public void SubmitBuyRequest()
-        {
-            new Handler().postDelayed(new Runnable(){
-                public void run() {
-                    HashMap paramView = new HashMap();
-                    paramView.put("order_id", String.valueOf(+currentData.id));
-                    paramView.put("click", "选择买断抢单");
-                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-
-                    paramView.put("order_id", String.valueOf(currentData.id));
-                    paramView.put("click", "立即抢单");
-                    com.huijiemanager.utils.k.a("xdj_loan_order_detail", paramView);
-                    currentDetail.ac.sendBuyLoanOrderFirstRequest(currentDetail.getNetworkHelper(), currentDetail, currentData.id, 1);
-                }
-            }, delayInterval);
-        }
-
-        private static NetworkHelper<b> _networkHelper = null;
-        private static HashMap requestMap = null;
-
-        public static  void SetNetworkHelper(NetworkHelper<b> paramNetworkHelper, HashMap localHashMap)
-        {
-            _networkHelper = paramNetworkHelper;
-            requestMap= localHashMap;
-        }
-
-        private static PublicDetailActivity currentDetail;
-        private static  int currentInt;
-        private  static  PublicDetailResponse currentData;
-
-        public  static void SetDetail20(int parmera)
-        {
-            LogStr((currentDetail == null)+"");
-            //  private void a(int paramInt)
-            HashMap localHashMap = new HashMap();
-            localHashMap.put("default", Boolean.valueOf(currentDetail.aX));
-            localHashMap.put("order_price", currentDetail.aY);
-            com.huijiemanager.utils.k.a("xdj_discount_coupon", localHashMap);
-            currentDetail.I = Integer.valueOf(parmera);
-
-            //  private void b(int paramInt) ->  private void c(int paramInt)
-            HashMap parmeraHashMap = new HashMap();
-            parmeraHashMap.put("coupon_id", currentDetail.B);
-            parmeraHashMap.put("method", "独享");
-            parmeraHashMap.put("coupon_usable", Boolean.valueOf(false));
-            com.huijiemanager.utils.k.a("xdj_yhq_use", parmeraHashMap);
-
-
-            currentDetail.ac.sendBuyLoanOrderRequest(_networkHelper, currentDetail, currentDetail.d.id.longValue(), 1,
-                    currentDetail.d.operationActivityId, currentDetail.B);
-
-            LogStr("发送确认抢单消息");
-
-            if(detailClose != null || currentDetail != null)
-                AutoCloseDetail();
-        }
-
-        public  static void SuccessClose(PublicDetailActivity detailActivitys)
-        {
-            if(detailClose == null || currentDetail == null)
-                return;
-
-            AutoCloseDetail();
-        }
-
-     class OrdreFilter{
-
-            public String  cityFlag;
-            public String lockFlag;
-            public int minAge;
-            public int maxAge;
-            public int autoCloseCount;
-            public int orderInterval;
-
-            public String 月收入 = "";  //xx元
-            public String 收入形式= ""; //转账工资，现金发放，银行转账
-            public String 本地社保= "";//无本地社保，连续6个月
-            public String 本地公积金= "";//无本地公积金，连续6个月
-            public String 当前单位工龄= "";//6个月以上
-            public String 手机归属地= "";//市级包含检查
-            public String 户籍所在地= "";//市级包含检查
-            public String 信用卡额度= "";//xx元
-            public String 信用记录= "";//信用良好无逾期，1年内逾期少于3次且少于90天,1年内逾期大于3次且大于90天
-            public String 微粒贷额度= "";//xxx元
-            public  String 名下房产= "";//有房产,不接受抵押
-            public  String 名下车产= "";//有车产,不接受抵押
-            public  String 保单价值= "";//有房产,不接受抵押
-
-            public  int GetValiIndex(String filedName){
-                int index = 0;
-                if (!月收入.contains("无"))
-                {
-                    if(filedName.equals("月收入"))
-                        return index;
-                    index++;
-                }
-                if (!收入形式.contains("无"))
-                {
-                    if(filedName.equals("收入形式"))
-                        return index;
-                    index++;
-                }
-                if (!本地社保.contains("无"))
-                {
-                    if(filedName.equals("本地社保"))
-                        return index;
-                    index++;
-                }
-                if (!本地公积金.contains("无"))
-                {
-                    if(filedName.equals("本地公积金"))
-                        return index;
-                    index++;
-                }
-                if (!当前单位工龄.contains("无"))
-                {
-                    if(filedName.equals("当前单位工龄"))
-                        return index;
-                    index++;
-                }
-                if (!手机归属地.contains("无"))
-                {
-                    if(filedName.equals("手机归属地"))
-                        return index;
-                    index++;
-                }
-                if (!户籍所在地.contains("无"))
-                {
-                    if(filedName.equals("户籍所在地"))
-                        return index;
-                    index++;
-                }
-                if (!信用卡额度.contains("无"))
-                {
-                    if(filedName.equals("信用卡额度"))
-                        return index;
-                    index++;
-                }
-                if (!信用记录.equals("无"))
-                {
-                    if(filedName.equals("信用记录"))
-                        return index;
-                    index++;
-                }
-                if (!微粒贷额度.equals("无"))
-                {
-                    if(filedName.equals("微粒贷额度"))
-                        return index;
-                    index++;
-                }
-                if (!名下房产.equals("无"))
-                {
-                    if(filedName.equals("名下房产"))
-                        return index;
-                    index++;
-                }
-                if (!名下车产.equals("无"))
-                {
-                    if(filedName.equals("名下车产"))
-                        return index;
-                    index++;
-                }
-                if (!保单价值.equals("无"))
-                {
-                    if(filedName.equals("保单价值"))
-                        return index;
-                    index++;
-                }
-                return index;
-            }
-
-            public  int ValiCount()
-            {
-                int count = 0;
-                if (!月收入.equals("无"))
-                    count++;
-                if (!收入形式.equals("无"))
-                    count++;
-                if (!本地社保.equals("无"))
-                    count++;
-                if (!本地公积金.equals("无"))
-                    count++;
-                if (!当前单位工龄.equals("无"))
-                    count++;
-                if (!手机归属地.equals("无"))
-                    count++;
-                if (!户籍所在地.equals("无"))
-                    count++;
-                if (!信用卡额度.equals("无"))
-                    count++;
-                if (!信用记录.equals("无"))
-                    count++;
-                if (!微粒贷额度.equals("无"))
-                    count++;
-                if (!名下房产.equals("无"))
-                    count++;
-                if (!名下车产.equals("无"))
-                    count++;
-                if (!保单价值.equals("无"))
-                    count++;
-                return  count;
-            }
-        }
-
-        @TargetApi(Build.VERSION_CODES.O)
-        public List<OrdreFilter> ParseYessKey(String yessKeys)
-        {
-            List<OrdreFilter> valiData = null;
-            if(yessKeys.isEmpty())
-                return  null;
-
-            try {
-                String decodeAgin = new String( android.util.Base64.decode(yessKeys, android.util.Base64.NO_WRAP));
-            /*
-                   String content = "上海M" +
-                "2018-6-23Space00:00:00N" +
-                "22L50O" +
-                 "88P"+
-                "60Q"+
-                "3000#" +
-                "银行转账A" +
-                "连续6个月B" +
-                "连续6个月C" +
-                "6个月以上D" +
-                "上海E" +
-                "上海F" +
-                "8000G" +
-                "1年内逾期少于3次且少于90天H" +
-                "10000I" +
-                "有房产,可接受抵押J" +
-                "有车产,不接受抵押K" +
-                "30万" +
-                "||" +
-                "无#" +
-                "无A" +
-                "无B" +
-                "无C" +
-                "无D" +
-                "无E" +
-                "无F" +
-                "无G" +
-                "无H" +
-                "无I" +
-                "无J" +
-                "无K" +
-                "无" ;
-            */
-
-                OrdreFilter headData = new OrdreFilter();
-                headData.cityFlag = decodeAgin.split("M")[0];
-                decodeAgin = decodeAgin.replace(headData.cityFlag+"M","");
-                String dataStr = decodeAgin.split("N")[0];
-                headData.lockFlag =dataStr .replace("Space"," ");
-                decodeAgin = decodeAgin.replace(dataStr+"N","");
-                String ageStr =  decodeAgin.split("O")[0];
-                if(!ageStr.isEmpty())
-                {
-                    String[] ageArray = ageStr.split("L");
-                    headData.minAge = Integer.parseInt(ageArray[0]);
-                    headData.maxAge = Integer.parseInt(ageArray[1]);
-                }
-                decodeAgin = decodeAgin.replace(ageStr+"O","");
-
-                String countStr =  decodeAgin.split("P")[0];
-                headData.autoCloseCount = Integer.parseInt(countStr);
-                decodeAgin = decodeAgin.replace(countStr+"P","");
-
-                String intervalStr =  decodeAgin.split("Q")[0];
-                headData.orderInterval = Integer.parseInt(intervalStr);
-                decodeAgin = decodeAgin.replace(intervalStr+"Q","");
-
-                String[] filterArr = decodeAgin.split("\\|\\|");
-
-                valiData = new ArrayList<OrdreFilter>();
-                if(filterArr.length  == 0)
-                {
-                    valiData.add(headData);
-                    return  valiData;
-                }
-
-                for (String filter:filterArr) {
-                    //000#银行转账;连续6个月%连续6个月^6个月以上&上海*上海(8000)1年内逾期少于3次且少于90天_10000+有房产,可接受抵押{有车产,不接受抵押}30
-                    OrdreFilter order = new OrdreFilter();
-                    order.cityFlag = headData.cityFlag;
-                    order.lockFlag = headData.lockFlag;
-                    order.minAge = headData.minAge;
-                    order.maxAge = headData.maxAge;
-                    order.autoCloseCount = headData.autoCloseCount;
-                    order.orderInterval = headData.orderInterval;
-
-                    order.月收入 =  filter.split("#")[0];
-                    filter = filter.replace(order.月收入 +"#","");
-
-                    order.收入形式 =  filter.split("A")[0];
-                    filter = filter.replace(order.收入形式 +"A","");
-
-                    order.本地社保 =  filter.split("B")[0];
-                    filter = filter.replace(order.本地社保 +"B","");
-
-                    order.本地公积金 =  filter.split("C")[0];
-                    filter = filter.replace(order.本地公积金 +"C","");
-
-                    order.当前单位工龄 =  filter.split("D")[0];
-                    filter = filter.replace(order.当前单位工龄 +"D","");
-
-                    order.手机归属地 =  filter.split("E")[0];
-                    filter = filter.replace(order.手机归属地 +"E","");
-
-                    order.户籍所在地 =  filter.split("F")[0];
-                    filter = filter.replace(order.户籍所在地 +"F","");
-
-                    order.信用卡额度 =  filter.split("G")[0];
-                    filter = filter.replace(order.信用卡额度 +"G","");
-
-                    order.信用记录 =  filter.split("H")[0];
-                    filter = filter.replace(order.信用记录 +"H","");
-
-                    order.微粒贷额度 =  filter.split("I")[0];
-                    filter = filter.replace(order.微粒贷额度 +"I","");
-
-                    order.名下房产 =  filter.split("J")[0];
-                    filter = filter.replace(order.名下房产 +"J","");
-
-                    order.名下车产 =  filter.split("K")[0];
-                    filter = filter.replace(order.名下车产 +"K","");
-
-                    order.保单价值 =  filter;
-                    valiData.add(order);
-                }
-            }
-            catch (Exception e){
-
-                LogStr(         e.getStackTrace().toString());
-                return null;
-            }
-
-            return  valiData;
+        try {
+            File yessKeys = new File( instance.mainActivity.getFilesDir(), "YessKeys.yes");
+            yessKeys.createNewFile();
+            FileOutputStream os = new FileOutputStream(yessKeys);
+            os.write(contents.getBytes());
+            os.close();
+        }catch (Exception e){
         }
     }
+}
