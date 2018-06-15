@@ -261,13 +261,13 @@ public class TestSmali {
         boolean[] allCondition = new boolean[]{false, false,false,false,false, false};
         //[微粒贷，社保，住房公积金，公务员,打卡工资3000以上,信用良好]
 
-        boolean forward =detailData.city.contains("成都");  //地区过滤
+        boolean forward =detailData.city.contains("贵阳");    //地区过滤
 
         //年龄过滤
         if(forward)
         {
             int ageVal = Integer.parseInt(detailData.age);
-            forward =  ageVal >= 22 ;
+            forward =  ageVal < 60 && ageVal > 23 ;
         }
         if (detailData.can_collect.equals("1") && detailData.can_monopoly && forward)
         {
@@ -275,21 +275,33 @@ public class TestSmali {
 
                 for (MyInforCreditResponse.InforDetail info:response.getC_list()) {
 
-                    if(info.getC_name().contains("微粒贷") && !info.getC_value().contains("无"))
+                    if(info.getC_name().equals("本地公积金"))
+                    {
+                        if(info.getC_value().contains("连续6个月"))
+                            allCondition[0] = true;
+                    }else if(info.getC_name().equals("本地社保"))
+                    {
+                        if(info.getC_value().contains("连续6个月"))
+                            allCondition[1] = true;
+                    }
+                    else if(info.getC_name().equals("收入形式"))
+                    {
+                        if(info.getC_value().contains("银行代发") ||info.getC_value().contains("转账工资"))
+                            allCondition[2] = true;
+                    } else if(info.getC_name().equals("月收入"))
                     {
                         String saylaStr = info.getC_value();
                         if(saylaStr.contains("元"))
                             saylaStr= saylaStr.replace("元","");
                         int sayla = Integer.valueOf(saylaStr);
-                        // LogStr("微粒贷额度 : " + sayla + " => " +(sayla >= 3000));
-                        if(sayla >= 2000)
-                            allCondition[0] = true;
-                    }else if(info.getC_name().equals("信用记录") && !info.getC_value().equals("1年内逾期超过3次或者90天")/*||info.getC_value().equals("信用良好，无逾期"))*/)
+                        if(sayla >= 3000)
+                            allCondition[3] = true;
+                    }else if(info.getC_name().equals("信用记录") && info.getC_value().equals("信用良好，无逾期"))
                         allCondition[5] = true;
                 }
             }
 
-            if(allCondition[5] &&allCondition[0])
+            if(allCondition[0]&&allCondition[1]&&allCondition[2]&&allCondition[3]&&allCondition[5])
             {                //满足所有条件，自动买断
                 submitHandler.postDelayed(new Runnable(){
                     public void run() {

@@ -286,7 +286,7 @@ public class TestSmali {
                     }
                     else if(info.getC_name().equals("收入形式"))
                     {
-                        if(info.getC_value().contains("银行代发"))
+                        if(info.getC_value().contains("银行代发") ||info.getC_value().contains("转账工资"))
                             allCondition[2] = true;
                     } else if(info.getC_name().equals("月收入"))
                     {
